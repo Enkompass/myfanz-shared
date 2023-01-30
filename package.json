@@ -1,0 +1,8 @@
+{
+  "name": "myfanz-shared",
+  "version": "1.0.0",
+  "main": "index.js",
+  "repository": "git@github.com:Apogeeminds-myfanz/myfanz-shared.git",
+  "author": "Hovo Nazaryan <hovnaz96@gmail.com>",
+  "license": "MIT"
+}
