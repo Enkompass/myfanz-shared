@@ -3,6 +3,7 @@ const errorHandler = require('./middlewares/errorHandler');
 const checkPermission = require('./middlewares/checkPermission');
 const redisWrapper = require('./wrappers/redisWrapper');
 const rabbitBroker = require('./wrappers/rabbitBroker');
+const helpers = require('./helpers/helpers');
 const redisClient = require('./helpers/redisClient');
 
 module.exports = {
@@ -11,5 +12,6 @@ module.exports = {
     checkPermission,
     redisWrapper,
     rabbitBroker,
-    redisClient
+    redisClient,
+    helpers
 }
