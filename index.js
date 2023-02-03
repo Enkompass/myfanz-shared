@@ -9,9 +9,9 @@ const redisClient = require('./helpers/redisClient');
 module.exports = {
     ...errors,
     ...errorHandler,
+    ...helpers,
     checkPermission,
     redisWrapper,
     rabbitBroker,
-    redisClient,
-    helpers
+    redisClient
 }
