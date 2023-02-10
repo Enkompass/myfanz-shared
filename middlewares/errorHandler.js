@@ -33,14 +33,14 @@ exports.errorHandler = function (err, req, res, next) {
     case 'JwtExpiredError':
       responseValue.code = 401;
       break;
-    case 'NotAuthorizedError':
+    case 'PermissionError':
       responseValue.code = 403;
+      break;
+    case 'NotAuthorizedError':
+      responseValue.code = 419;
       break;
     case 'WrongUrlError':
       responseValue.code = 404;
-      break;
-    case 'PermissionError':
-      responseValue.code = 405;
       break;
     case 'TwoFactorError':
       responseValue.code = 412;
