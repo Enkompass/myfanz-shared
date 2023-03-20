@@ -2,8 +2,8 @@ const { User, UserDetails } = require('./models/index');
 const { Sequelize } = require('sequelize');
 const { Op } = Sequelize;
 
-async function getUserById(id) {
-  return User.findOne({ where: { id } });
+async function getUserById(id, ignoreHook = false) {
+  return User.findOne({ where: { id }, ignoreHook });
 }
 async function getUsersDataByIds(userIds) {
   return User.findAll({
@@ -13,12 +13,22 @@ async function getUsersDataByIds(userIds) {
   });
 }
 
-async function getUserAllData(userId) {
+async function getUserAllData(userId, ignoreHook = false) {
   return User.findOne({
     where: { id: userId },
     include: [{ model: UserDetails, as: 'details' }],
     raw: true,
+    ignoreHook,
   });
 }
 
-module.exports = { getUserById, getUsersDataByIds, getUserAllData };
+async function getUserDetails(userId) {
+  return UserDetails.findOne({ where: { userId }, raw: true });
+}
+
+module.exports = {
+  getUserById,
+  getUsersDataByIds,
+  getUserAllData,
+  getUserDetails,
+};

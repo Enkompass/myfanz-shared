@@ -53,16 +53,20 @@ module.exports = (sequelize, DataTypes) => {
     {
       sequelize,
       modelName: 'User',
+      scopes: {},
       defaultScope: {
         // raw: true,
         attributes: {
-          exclude: ['createdAt', 'updatedAt'],
+          exclude: ['id', 'password', 'createdAt', 'updatedAt'],
         },
       },
     }
   );
 
-  User.addHook('afterFind', async (result) => {
+  User.addHook('afterFind', async (result, options) => {
+    const { ignoreHook } = options;
+    if (ignoreHook) return result;
+
     if (Array.isArray(result)) {
       return new Promise((resolve, reject) => {
         async.eachLimit(
@@ -89,9 +93,10 @@ module.exports = (sequelize, DataTypes) => {
         );
       });
     } else {
-      return new Promise((resolve) => {
-        resolve(result.avatar);
-      });
+      if (result.avatar)
+        result.avatar = await getObjectSignedUrl(result.avatar);
+      if (result.cover) result.cover = await getObjectSignedUrl(result.cover);
+      return result;
     }
 
     // return result;
