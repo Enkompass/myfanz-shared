@@ -93,6 +93,7 @@ module.exports = (sequelize, DataTypes) => {
         );
       });
     } else {
+      if (!result) return result;
       if (result.avatar)
         result.avatar = await getObjectSignedUrl(result.avatar);
       if (result.cover) result.cover = await getObjectSignedUrl(result.cover);
