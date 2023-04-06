@@ -9,7 +9,7 @@ const config = {
   username: process.env.DEV_MYFANZ_DATABASE_USERNAME,
   password: process.env.DEV_MYFANZ_DATABASE_PASSWORD,
   dialect: process.env.DEV_MYFANZ_DATABASE_DIALECT,
-  host: process.env.DEV_MYFANZ_DATABASE_DIALECT || 'localhost',
+  host: process.env.DEV_MYFANZ_DATABASE_HOST || 'localhost',
   dialectOptions: {
     ssl: {
       require: true,
