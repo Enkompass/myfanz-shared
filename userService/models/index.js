@@ -9,6 +9,12 @@ const config = {
   username: process.env.DEV_MYFANZ_DATABASE_USERNAME,
   password: process.env.DEV_MYFANZ_DATABASE_PASSWORD,
   dialect: process.env.DEV_MYFANZ_DATABASE_DIALECT,
+  dialectOptions: {
+    ssl: {
+      require: true,
+      rejectUnauthorized: false // disable SSL verification
+    }
+  }
 };
 
 const db = {};
