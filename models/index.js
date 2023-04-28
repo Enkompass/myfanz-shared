@@ -13,9 +13,9 @@ const config = {
   dialectOptions: {
     ssl: {
       require: true,
-      rejectUnauthorized: false // disable SSL verification
-    }
-  }
+      rejectUnauthorized: false, // disable SSL verification
+    },
+  },
 };
 
 const db = {};
