@@ -1,4 +1,4 @@
-const axios = require('axios');
+const { ConflictError } = require('../errors');
 
 const userRoles = [
   { id: 1, role: 'user' },
@@ -17,6 +17,15 @@ module.exports.getRoleId = function (role) {
 };
 
 /**
+ * Get role by role id
+ * @param roleId {number } - role id
+ * @returns {'user' | 'member' | 'creator' | 'admin'}
+ */
+module.exports.getRoleFromId = function (roleId) {
+  return userRoles.find((el) => el.id === roleId)?.role;
+};
+
+/**
  * Return parsed from json data if data valid, otherwise return null (not crushed)
  * @param arg
  * @returns {any|null}
@@ -30,38 +39,19 @@ module.exports.jsonParser = function (arg) {
   }
 };
 
-module.exports.makePayment = async function (
-  cookie,
-  toUserId,
-  amount,
-  description
-) {
-  try {
-    const mainAppUrl = process.env.MAIN_APP_URL;
-    if (!mainAppUrl)
-      return {
-        success: false,
-        message: 'Main app URL not defined',
-      };
-
-    const response = await axios({
-      method: 'post',
-      url: `${mainAppUrl}/payment-srv/payment/balance`,
-      headers: {
-        Cookie: cookie, // Pass the active cookie session from the incoming request
-        'is-internal': true,
-      },
-      data: {
-        toUserId,
-        amount,
-        description,
-      },
-    });
-    console.log('response ', response.data);
-
-    return response.data;
-  } catch (e) {
-    console.log(e.response.data);
-    return { success: false, ...e.response.data };
+/**
+ * Capitalize first letter of string from argument and retrun it
+ * @param str
+ * @returns {string}
+ */
+module.exports.capitalizeFirstLetter = function (str) {
+  if (typeof str !== 'string') {
+    throw new ConflictError('Expected a string');
   }
+
+  if (str.length === 0) {
+    return str;
+  }
+
+  return str.charAt(0).toUpperCase() + str.slice(1);
 };
