@@ -55,3 +55,16 @@ module.exports.capitalizeFirstLetter = function (str) {
 
   return str.charAt(0).toUpperCase() + str.slice(1);
 };
+
+/**
+ * Convert query params
+ * @param query
+ * @returns {{limit: (*|number), page: (number|number)}}
+ */
+exports.getQueryParams = (query) => {
+  const limit = query?.limit || 10;
+  return {
+    limit,
+    page: query?.page * limit || 0,
+  };
+};
