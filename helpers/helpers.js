@@ -62,9 +62,10 @@ module.exports.capitalizeFirstLetter = function (str) {
  * @returns {{limit: (*|number), page: (number|number)}}
  */
 exports.getQueryParams = (query) => {
-  const limit = query?.limit || 10;
+  const limit = query?.limit ? Number(query.limit) : 10;
   return {
+    ...query,
     limit,
-    page: query?.page * limit || 0,
+    page: (query?.page ? Number(query.page) : 0) * limit,
   };
 };
