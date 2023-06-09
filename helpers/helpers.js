@@ -63,12 +63,9 @@ module.exports.capitalizeFirstLetter = function (str) {
  */
 exports.getQueryParams = (query) => {
   const limit = query?.limit ? Number(query.limit) : 10;
-  const page = query?.page ? Number(query.limit) : 0;
-
   return {
     ...query,
     limit,
-    page,
-    skip: page * limit,
+    page: (query?.page ? Number(query.page) : 0) * limit,
   };
 };
