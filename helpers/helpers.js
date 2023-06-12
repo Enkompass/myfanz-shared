@@ -69,3 +69,29 @@ exports.getQueryParams = (query) => {
     page: (query?.page ? Number(query.page) : 0) * limit,
   };
 };
+
+/**
+ * Convert query params
+ * @param query
+ * @returns {{limit: (*|number), page: (number|number)}}
+ */
+exports.convertQueryParams = (query) => {
+  if (!query) query = {};
+  const { limit, page } = query;
+
+  return {
+    page,
+    limit,
+    customLabels: {
+      totalDocs: 'totalCount',
+      docs: 'items',
+      limit: 'perPage',
+      page: 'currentPage',
+      nextPage: 'nextPage',
+      prevPage: 'prevPage',
+      totalPages: 'totalPages',
+      pagingCounter: 'pagingCounter',
+      meta: 'paginate',
+    },
+  };
+};
