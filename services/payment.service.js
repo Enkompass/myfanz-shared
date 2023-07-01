@@ -2,16 +2,20 @@ const axios = require('axios');
 /**
  * Make payment by request to payment service
  * @param cookie - session cookie
- * @param toUserId -  receiver user id
- * @param amount - payment amount
- * @param description - payment description
+ * @param toUserId {number} -  receiver user id
+ * @param amount {number} - payment amount
+ * @param description {string} - payment description
+ * @param type {'tip'|'post_tip'|'message_tip'|'stream_tip'|'story_tip'|'unlock_post'|'message_unlock'|'subscribe'} - payment description
+ * @param message {string} - payment description
  * @returns {Promise<(*&{success: boolean})|*|{success: boolean, message: string}>}
  */
 module.exports.makePayment = async function (
   cookie,
   toUserId,
   amount,
-  description
+  description,
+  type,
+  message
 ) {
   try {
     const mainAppUrl = process.env.MAIN_APP_URL;
@@ -32,6 +36,8 @@ module.exports.makePayment = async function (
         toUserId,
         amount,
         description,
+        type,
+        message,
       },
     });
     console.log('response ', response.data);

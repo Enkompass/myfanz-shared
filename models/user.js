@@ -16,6 +16,11 @@ module.exports = (sequelize, DataTypes) => {
         as: 'details',
         foreignKey: 'userId',
       });
+
+      this.hasMany(models.LoginSession, {
+        as: 'sessions',
+        foreignKey: 'userId',
+      });
     }
     async getRole(roleId) {
       const dbRole = await sequelize.models.Role.findOne({

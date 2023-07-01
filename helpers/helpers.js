@@ -77,11 +77,14 @@ exports.getQueryParams = (query) => {
  */
 exports.convertQueryParams = (query) => {
   if (!query) query = {};
-  const { limit, page } = query;
+  let { limit, page } = query;
+  limit = Number(limit) || 10;
+  page = Number(page) || 1;
 
   return {
     page,
     limit,
+    skip: page * limit,
     customLabels: {
       totalDocs: 'totalCount',
       docs: 'items',

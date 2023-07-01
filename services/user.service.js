@@ -1,9 +1,23 @@
-const { User, UserDetails } = require('../models/index');
+const axios = require('axios');
+const { User, UserDetails, LoginSession } = require('../models/index');
 const { Sequelize } = require('sequelize');
 const { Op } = Sequelize;
 
 async function getUserById(id, ignoreHook = false) {
-  return User.findOne({ where: { id }, ignoreHook });
+  let user = await User.findOne({ where: { id }, ignoreHook });
+  const session = await LoginSession.findOne({
+    where: { userId: id },
+    sort: [['lastActivity', 'DESC']],
+    limit: 1,
+    raw: true,
+  });
+
+  if (user) {
+    user = user.dataValues;
+    user.lastActivity = session.lastActivity;
+  }
+
+  return user;
 }
 async function getUsersDataByIds(userIds) {
   return User.findAll({
@@ -57,10 +71,64 @@ async function getUserByFilter(
   return user;
 }
 
+/**
+ * Make report by request to main api service
+ * @param cookie - session cookie
+ * @param reportedUser -  reported user id
+ * @param typeId - report type
+ * @param message - report message
+ * @param itemType - reported item type
+ * @param itemId - reported item id
+ * @param itemUrl - reported item URL
+ * @returns {Promise<(*&{success: boolean})|*|{success: boolean, message: string}>}
+ */
+async function makeReport(
+  cookie,
+  reportedUser,
+  typeId,
+  message,
+  itemType,
+  itemId,
+  itemUrl
+) {
+  try {
+    const mainAppUrl = process.env.MAIN_APP_URL;
+    if (!mainAppUrl)
+      return {
+        success: false,
+        message: 'Main app URL not defined',
+      };
+
+    const response = await axios({
+      method: 'post',
+      url: `${mainAppUrl}/report`,
+      headers: {
+        Cookie: cookie, // Pass the active cookie session from the incoming request
+        'is-internal': true,
+      },
+      data: {
+        reportedUser,
+        typeId,
+        message,
+        itemType,
+        itemId,
+        itemUrl,
+      },
+    });
+    console.log('response ', response.data);
+
+    return response.data;
+  } catch (e) {
+    console.log('makeReport err => ', e.response.data);
+    return { success: false, ...e.response.data };
+  }
+}
+
 module.exports = {
   getUserById,
   getUsersDataByIds,
   getUserAllData,
   getUserDetails,
   getUserByFilter,
+  makeReport,
 };
