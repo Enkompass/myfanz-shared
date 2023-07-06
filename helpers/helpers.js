@@ -82,6 +82,7 @@ exports.convertQueryParams = (query) => {
   page = Number(page) || 1;
 
   return {
+    filter: query?.filter,
     page,
     limit,
     skip: page * limit,
