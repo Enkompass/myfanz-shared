@@ -1,23 +1,17 @@
 const axios = require('axios');
-const { User, UserDetails, LoginSession } = require('../models/index');
+const { User, UserDetails } = require('../models/index');
 const { Sequelize } = require('sequelize');
 const { Op } = Sequelize;
 
 async function getUserById(id, ignoreHook = false) {
-  let user = await User.findOne({ where: { id }, ignoreHook });
-  const session = await LoginSession.findOne({
-    where: { userId: id },
-    sort: [['lastActivity', 'DESC']],
-    limit: 1,
-    raw: true,
-  });
+  return User.findOne({ where: { id }, ignoreHook });
 
-  if (user) {
-    user = user.dataValues;
-    user.lastActivity = session.lastActivity;
-  }
+  // if (user) {
+  //   user = user.dataValues;
+  //   user.lastActivity = session.lastActivity;
+  // }
 
-  return user;
+  // return user;
 }
 async function getUsersDataByIds(userIds) {
   return User.findAll({

@@ -50,6 +50,7 @@ module.exports = (sequelize, DataTypes) => {
       roleId: DataTypes.INTEGER,
       hasCard: DataTypes.BOOLEAN,
       online: DataTypes.BOOLEAN,
+      lastActivity: DataTypes.DATE,
       avatar: {
         type: DataTypes.STRING,
       },
