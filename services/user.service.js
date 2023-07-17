@@ -1,5 +1,5 @@
 const axios = require('axios');
-const { User, UserDetails } = require('../models/index');
+const { User, UserDetails, UserSettings } = require('../models/index');
 const { Sequelize } = require('sequelize');
 const { Op } = Sequelize;
 
@@ -118,6 +118,20 @@ async function makeReport(
   }
 }
 
+/**
+ * Get user settings
+ * @param userId
+ * @returns {Promise<any>}
+ */
+async function getUserSettings(userId) {
+  return UserSettings.findOne({
+    where: {
+      userId,
+    },
+    raw: true,
+  });
+}
+
 module.exports = {
   getUserById,
   getUsersDataByIds,
@@ -125,4 +139,5 @@ module.exports = {
   getUserDetails,
   getUserByFilter,
   makeReport,
+  getUserSettings,
 };
