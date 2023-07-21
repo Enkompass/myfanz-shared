@@ -99,3 +99,61 @@ exports.convertQueryParams = (query) => {
     },
   };
 };
+
+/**
+ * Convert query params for postgre
+ * @param query
+ * @returns {{limit: (*|number), page: (number|number)}}
+ */
+exports.convertQueryParamsPg = (query) => {
+  if (!query) query = {};
+  let { limit, page } = query;
+  limit = Number(limit) || 10;
+  page = Number(page) || 1;
+  const offset = (page - 1) * limit;
+
+  return {
+    ...query,
+    page,
+    limit,
+    offset,
+  };
+};
+
+/**
+ * Paginate Postgre query in sequelize
+ * @param model - Model
+ * @param options - query options
+ * @param query - query params
+ * @returns {Promise<{paginate: {hasPrevPage: boolean, perPage: number | number, hasNextPage: boolean, pagingCounter: number, nextPage: (*|null), totalPages: number, prevPage: (number|null), totalCount: *, currentPage: number | number}, items: *}>}
+ */
+exports.paginatePg = async function (model, options, query) {
+  if (!query) query = {};
+  let { limit, page } = query;
+  limit = Number(limit) || 10;
+  page = Number(page) || 1;
+  const offset = (page - 1) * limit;
+
+  const { count, rows } = await model.findAndCountAll({
+    ...options,
+    limit,
+    offset,
+  });
+
+  const totalPages = Math.ceil(count / limit);
+
+  return {
+    items: rows,
+    paginate: {
+      totalCount: count,
+      perPage: limit,
+      totalPages,
+      currentPage: page,
+      pagingCounter: (page - 1) * limit + 1,
+      hasPrevPage: page !== 1,
+      hasNextPage: totalPages > page,
+      prevPage: page !== 1 ? page - 1 : null,
+      nextPage: totalPages > page ? page + 1 : null,
+    },
+  };
+};
