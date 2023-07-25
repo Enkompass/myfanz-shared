@@ -33,6 +33,7 @@ module.exports = (sequelize, DataTypes) => {
     {
       listId: DataTypes.INTEGER,
       userId: DataTypes.INTEGER,
+      expiredAt: DataTypes.DATE,
     },
     {
       sequelize,
