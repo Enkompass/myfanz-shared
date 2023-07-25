@@ -14,9 +14,10 @@ module.exports = (sequelize, DataTypes) => {
         foreignKey: 'listId',
       });
 
-      // this.hasOne(models.BaseLists, {
-      //   foreignKey: 'type',
-      // });
+      this.hasOne(models.Connections, {
+        as: 'connection',
+        foreignKey: 'listId',
+      });
 
       this.hasOne(models.BaseLists, {
         as: 'basicLists',

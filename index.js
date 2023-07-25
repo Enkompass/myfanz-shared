@@ -9,6 +9,7 @@ const redisClient = require('./helpers/redisClient');
 const userService = require('./services/user.service');
 const listService = require('./services/list.service');
 const paymentService = require('./services/payment.service');
+const creatorBundlesService = require('./services/creatorBundles.service');
 
 module.exports = {
   ...errors,
@@ -17,6 +18,7 @@ module.exports = {
   ...userService,
   ...listService,
   ...paymentService,
+  ...creatorBundlesService,
   handleCurrentUser,
   checkPermission,
   redisWrapper,

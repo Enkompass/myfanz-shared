@@ -15,14 +15,18 @@ module.exports = (sequelize, DataTypes) => {
         foreignKey: 'id',
         sourceKey: 'userId',
       });
-      // this.belongsTo(models.Users, {
-      //   as: 'Users',
-      //   foreignKey: 'userId',
-      // });
-      // this.belongsToMany(models.Users, {
-      //   through: 'Lists',
-      //   foreignKey: 'userId',
-      // });
+
+      this.hasOne(models.SubscriptionsDetails, {
+        as: 'subscriptionDetails',
+        foreignKey: 'connectionId',
+        sourceKey: 'id',
+      });
+
+      this.hasOne(models.Lists, {
+        as: 'list',
+        foreignKey: 'id',
+        sourceKey: 'listId',
+      });
     }
   }
   Connections.init(
