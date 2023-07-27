@@ -7,19 +7,21 @@ const {
   CreatorSettings,
 } = require('../models/index');
 const { Sequelize } = require('sequelize');
-const { NotFoundError } = require('../errors');
+const { NotFoundError, ConflictError } = require('../errors');
 // const { getObjectSignedUrl } = require('myfanz-media/s3/awsClientS3');
 const {
   fetchUserSubscriptionBundles,
   initSubscriptionBundle,
 } = require('./creatorBundles.service');
+const { union } = require('lodash');
+const { fetchReportedUser } = require('./report.service');
 const { Op } = Sequelize;
 
 /**
  * Fetch user lists included refUser
  * @param userId {number} - user id (lists owner)
  * @param refUserId {number} - ref user id (included in lists)
- * @param active {boolean} [expired=false] - active flag
+ * @param active {boolean} [active=true] - active flag
  * @returns {Promise<Model[]>}
  */
 async function fetchUsersListsIncludedUser(userId, refUserId, active = true) {
@@ -56,7 +58,7 @@ async function fetchUserListByType(userId, type, raw = true) {
  * @param userId {number} - user id (list owner)
  * @param type {string} - list type
  * @param refUserId {number} - ref user id (user in connection)
- * @param active {boolean} [expired=false] - active flag
+ * @param active {boolean} [active=false] - active flag
  * @returns {Promise<Model>}
  */
 // async function checkUsersConnectionByListType(
@@ -86,7 +88,7 @@ async function fetchUserListByType(userId, type, raw = true) {
  * @param userId {number} - user id (list owner)
  * @param type {string} - list type
  * @param refUserId {number} - ref user id (user in connection)
- * @param active {boolean} [expired=false] - active flag
+ * @param active {boolean} [active=false] - active flag
  * @returns {Promise<Model>}
  */
 async function checkUsersConnectionByList(
@@ -191,7 +193,7 @@ async function fetchBaseListByType(type, raw = true) {
  * Fetch all users in connection by list type
  * @param userId
  * @param slug
- * @param active {boolean} [expired=false] - active flag
+ * @param active {boolean} [active=false] - active flag
  * @returns {Promise<any>}
  */
 async function fetchUsersInConnection(userId, slug, active = true) {
@@ -318,9 +320,113 @@ async function getUserSubscriptionPlanes(userId) {
   };
 }
 
+/**
+ * Validate users blocking
+ * @param userId {number} - user id
+ * @param refUserId {number} - ref user id
+ * @param validateRestricted {boolean} [validateRestricted=false] - if passed true validate also restricted
+ * @returns {Promise<void>}
+ */
+async function validateBlocking(userId, refUserId, validateRestricted = false) {
+  if (await checkUsersConnectionByList(userId, 'blocked', refUserId))
+    throw new ConflictError('Blocked user');
+
+  if (await checkUsersConnectionByList(refUserId, 'blocked', userId))
+    throw new ConflictError('You are blocked by this user');
+
+  if (
+    validateRestricted &&
+    (await checkUsersConnectionByList(refUserId, 'restricted', userId))
+  )
+    throw new ConflictError('You are restricted by this user');
+}
+
+/**
+ * Get all validation connections details with two users
+ * @param userId {number} - user id
+ * @param validateFor {number} - validate for user id
+ * @returns {Promise<void>}
+ */
+async function fetchUsersConnectionsDetails(userId, validateFor) {
+  const result = {
+    ...(await getUsersSubscriptionsDetails(validateFor, userId)),
+  };
+  result.blocked = Boolean(
+    await checkUsersConnectionByList(validateFor, 'blocked', userId)
+  );
+  result.blockedReversal = Boolean(
+    await checkUsersConnectionByList(userId, 'blocked', validateFor)
+  );
+
+  result.restricted = Boolean(
+    await checkUsersConnectionByList(validateFor, 'restricted', userId)
+  );
+
+  result.reported = Boolean(await fetchReportedUser(validateFor, userId));
+
+  return result;
+}
+
+/**
+ * Fetch unique users id-es which blocked by passed user or they blocked passed user
+ * @param userId {number} - for user id
+ * @param includeRestricted {boolean} [includeRestricted=false] - restricted flag,
+ * if passed false in response will add also users which restricted passed user
+ * @returns {Promise<any>}
+ */
+async function fetchNotAllowedUsers(userId, includeRestricted = false) {
+  let blockedUsers = (
+    await Connections.findAll({
+      attributes: ['userId'],
+      include: [
+        {
+          attributes: [],
+          model: Lists,
+          as: 'list',
+          where: { userId, type: 'blocked' },
+          required: true,
+        },
+      ],
+      raw: true,
+    })
+  ).map((el) => el.userId);
+
+  const expectedListTypes = ['blocked'];
+
+  if (includeRestricted) {
+    expectedListTypes.push('restricted');
+  }
+
+  const blockedFromUsers = (
+    await Lists.findAll({
+      attributes: ['Lists.userId'],
+      where: { type: { [Op.in]: expectedListTypes } },
+      include: [
+        {
+          attributes: [],
+          model: Connections,
+          as: 'connection',
+          where: { userId },
+          required: true,
+        },
+      ],
+      raw: true,
+      group: ['Lists.userId'],
+    })
+  ).map((el) => el.userId);
+
+  console.log('blockedUsers ', blockedUsers);
+  console.log('blockedFromUsers ', blockedFromUsers);
+
+  return union(blockedUsers, blockedFromUsers) || [];
+}
+
 module.exports = {
   fetchUsersListsIncludedUser,
   fetchUserListByType,
+  fetchActiveSubscription,
+  fetchNotAllowedUsers,
+  fetchUsersConnectionsDetails,
   // checkUsersConnectionByListType,
   // fetchUserList,
   checkUsersConnectionByList,
@@ -328,4 +434,5 @@ module.exports = {
   fetchUsersInConnection,
   getUsersSubscriptionsDetails,
   getUserSubscriptionPlanes,
+  validateBlocking,
 };

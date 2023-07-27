@@ -1,18 +1,59 @@
 const axios = require('axios');
 const { User, UserDetails, UserSettings } = require('../models/index');
 const { Sequelize } = require('sequelize');
+const { fetchUsersConnectionsDetails } = require('./list.service');
 const { Op } = Sequelize;
 
-async function getUserById(id, ignoreHook = false) {
-  return User.findOne({ where: { id }, ignoreHook });
+/**
+ * Get user by id
+ * @param id {number} - user id to get
+ * @param ignoreHook {boolean} [ignoreHook=false] - if true hooks not affected (does not get avatar and cover images)
+ * @param validateFor {number|undefined} [validateFor=undefined] - if passed validated users connections
+ * @returns {Promise<Model>}
+ */
+async function getUserById(id, ignoreHook = false, validateFor = undefined) {
+  let user = await User.scope('withId').findOne({
+    where: { id },
+    ignoreHook,
+    raw: true,
+  });
+  if (validateFor) {
+    user = {
+      ...user,
+      ...(await fetchUsersConnectionsDetails(validateFor, id)),
+    };
+  }
 
-  // if (user) {
-  //   user = user.dataValues;
-  //   user.lastActivity = session.lastActivity;
-  // }
-
-  // return user;
+  return user;
 }
+
+/**
+ * Get user by filter
+ * @param filter {object} - filter to get user
+ * @param ignoreHook {boolean} [ignoreHook=false] - if true hooks not affected (does not get avatar and cover images)
+ * @param validateFor {number|undefined} [validateFor=undefined] - if passed validated users connections
+ * @returns {Promise<Model>}
+ */
+async function getUserByFilter(
+  filter,
+  ignoreHook = false,
+  validateFor = undefined
+) {
+  let user = await User.scope('withId').findOne({
+    where: filter,
+    ignoreHook,
+    raw: true,
+  });
+  if (validateFor) {
+    user = {
+      ...user,
+      ...(await fetchUsersConnectionsDetails(validateFor, user.id)),
+    };
+  }
+
+  return user;
+}
+
 async function getUsersDataByIds(userIds) {
   return User.findAll({
     where: { id: { [Op.in]: userIds } },
@@ -35,6 +76,15 @@ async function getUserDetails(userId) {
 }
 
 /**
+ * Fetch user data with filter
+ * @param filter
+ * @returns {Promise<any>}
+ */
+async function fetchUserDataByFilter(filter) {
+  return User.scope('withId').findOne({ where: filter, raw: true });
+}
+
+/**
  * Get user data by email, returns null if not found
  * @param filter {object} - filter to get user
  * @param scope {'defaultScope'/'withPassword'/'withId'/'withAll'} [scope='defaultScope'] - scope
@@ -42,28 +92,28 @@ async function getUserDetails(userId) {
  * @param ignoreHook {boolean} [ignoreHook=false] - ignoreHook for avatar and cover
  * @returns {Promise<any|null>}
  */
-async function getUserByFilter(
-  filter,
-  scope = 'defaultScope',
-  raw = true,
-  ignoreHook = false
-) {
-  const user = await User.scope(scope).findOne({
-    where: filter,
-    ignoreHook,
-    include: [
-      {
-        model: UserDetails,
-        as: 'details',
-      },
-    ],
-  });
-
-  if (!user) return null;
-
-  if (raw) return user.dataValues;
-  return user;
-}
+// async function getUserByFilter(
+//   filter,
+//   scope = 'defaultScope',
+//   raw = true,
+//   ignoreHook = false
+// ) {
+//   const user = await User.scope(scope).findOne({
+//     where: filter,
+//     ignoreHook,
+//     include: [
+//       {
+//         model: UserDetails,
+//         as: 'details',
+//       },
+//     ],
+//   });
+//
+//   if (!user) return null;
+//
+//   if (raw) return user.dataValues;
+//   return user;
+// }
 
 /**
  * Make report by request to main api service
@@ -134,10 +184,11 @@ async function getUserSettings(userId) {
 
 module.exports = {
   getUserById,
+  getUserByFilter,
   getUsersDataByIds,
   getUserAllData,
   getUserDetails,
-  getUserByFilter,
   makeReport,
   getUserSettings,
+  fetchUserDataByFilter,
 };
