@@ -72,7 +72,7 @@ async function getUsersIdsByFilter(filter) {
 }
 
 async function getUsersDataByIds(userIds) {
-  return User.findAll({
+  return User.scope('withId').findAll({
     where: { id: { [Op.in]: userIds } },
     // include: [{ model: UserDetails, attributes: ['location'] }],
     raw: true,
@@ -80,7 +80,7 @@ async function getUsersDataByIds(userIds) {
 }
 
 async function getUserAllData(userId, ignoreHook = false) {
-  return User.findOne({
+  return User.scope('withId').findOne({
     where: { id: userId },
     include: [{ model: UserDetails, as: 'details' }],
     raw: true,
