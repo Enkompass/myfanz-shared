@@ -54,6 +54,23 @@ async function getUserByFilter(
   return user;
 }
 
+/**
+ * Get users id -es by filter
+ * @param filter {object} - filter to get user
+ * @returns {Promise<any>}
+ */
+async function getUsersIdsByFilter(filter) {
+  const users =
+    (await User.scope('withId').findAll({
+      attributes: ['id'],
+      where: filter,
+      ignoreHook: true,
+      raw: true,
+    })) || [];
+
+  return users.map((el) => el.id);
+}
+
 async function getUsersDataByIds(userIds) {
   return User.findAll({
     where: { id: { [Op.in]: userIds } },
@@ -191,4 +208,5 @@ module.exports = {
   makeReport,
   getUserSettings,
   fetchUserDataByFilter,
+  getUsersIdsByFilter,
 };

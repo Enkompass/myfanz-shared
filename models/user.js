@@ -51,6 +51,7 @@ module.exports = (sequelize, DataTypes) => {
       hasCard: DataTypes.BOOLEAN,
       // online: DataTypes.BOOLEAN,
       lastActivity: DataTypes.DATE,
+      active: DataTypes.BOOLEAN,
       avatar: {
         type: DataTypes.STRING,
       },

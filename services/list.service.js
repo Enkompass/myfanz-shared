@@ -61,36 +61,6 @@ async function fetchUserListByType(userId, type, raw = true) {
  * @param active {boolean} [active=false] - active flag
  * @returns {Promise<Model>}
  */
-// async function checkUsersConnectionByListType(
-//   userId,
-//   type,
-//   refUserId,
-//   active = true
-// ) {
-//   return Lists.findOne({
-//     where: { userId, type },
-//     include: {
-//       model: Connections,
-//       as: 'connections',
-//       attributes: ['userId'],
-//       where: {
-//         userId: refUserId,
-//         expiredAt: { [Op[active ? 'is' : 'ne']]: null },
-//       },
-//       required: true,
-//     },
-//     // group: [Lists.id],
-//   });
-// }
-
-/**
- * Fetch users connection by list type
- * @param userId {number} - user id (list owner)
- * @param type {string} - list type
- * @param refUserId {number} - ref user id (user in connection)
- * @param active {boolean} [active=false] - active flag
- * @returns {Promise<Model>}
- */
 async function checkUsersConnectionByList(
   userId,
   type,
@@ -122,72 +92,6 @@ async function checkUsersConnectionByList(
 async function fetchBaseListByType(type, raw = true) {
   return BaseLists.findOne({ where: { type }, raw });
 }
-
-/**
- *
- * @param userId
- * @param slug
- * @returns {Promise<any>}
- */
-// async function fetchUserList(userId, slug) {
-//   const where = { userId };
-//
-//   if (!isNaN(Number(slug))) {
-//     where.id = slug;
-//   } else if (typeof slug === 'string' && (await fetchBaseListByType(slug)))
-//     where.type = slug;
-//   else throw new NotFoundError('List not found');
-//
-//   let list = await Lists.findOne({
-//     // raw: true,
-//     where,
-//     include: [
-//       {
-//         model: Connections,
-//         as: 'connections',
-//         attributes: ['userId'],
-//         include: {
-//           hooks: true,
-//           model: User,
-//           as: 'user',
-//           attributes: ['id', 'username', 'displayName', 'avatar', 'cover'],
-//         },
-//       },
-//       // { model: BaseLists, as: 'basicLists' /*attributes: ['id']*/ },
-//     ],
-//   });
-//
-//   list = list.dataValues;
-//   let connections = list.connections;
-//
-//   console.log('connections ', connections);
-//
-//   for (let j = 0; j < connections.length; j++) {
-//     let connection = connections[j].dataValues;
-//     const user = connection.user.dataValues;
-//     connection = { ...connection, ...user };
-//     if (user.avatar) {
-//       connection.avatar = await getObjectSignedUrl(user.avatar);
-//     } else connection.avatar = null;
-//
-//     if (user.cover) {
-//       connection.cover = await getObjectSignedUrl(user.cover);
-//     } else connection.cover = null;
-//
-//     connection.subscribed = Boolean(
-//       await checkUsersConnectionByList(userId, 'following', user.id)
-//     );
-//
-//     connection.lists = await fetchUsersListsIncludedUser(userId, user.id);
-//
-//     delete connection.user;
-//     connections[j] = connection;
-//   }
-//
-//   list.connections = connections;
-//   list.totalConnections = connections.length;
-//   return list;
-// }
 
 /**
  * Fetch all users in connection by list type
@@ -334,11 +238,13 @@ async function validateBlocking(userId, refUserId, validateRestricted = false) {
   if (await checkUsersConnectionByList(refUserId, 'blocked', userId))
     throw new ConflictError('You are blocked by this user');
 
-  if (
-    validateRestricted &&
-    (await checkUsersConnectionByList(refUserId, 'restricted', userId))
-  )
-    throw new ConflictError('You are restricted by this user');
+  if (validateRestricted) {
+    if (await checkUsersConnectionByList(userId, 'restricted', refUserId))
+      throw new ConflictError('Restricted user');
+
+    if (await checkUsersConnectionByList(refUserId, 'restricted', userId))
+      throw new ConflictError('You are restricted by this user');
+  }
 }
 
 /**
@@ -360,6 +266,10 @@ async function fetchUsersConnectionsDetails(userId, validateFor) {
 
   result.restricted = Boolean(
     await checkUsersConnectionByList(validateFor, 'restricted', userId)
+  );
+
+  result.restrictedReversal = Boolean(
+    await checkUsersConnectionByList(userId, 'restricted', validateFor)
   );
 
   result.reported = Boolean(await fetchReportedUser(validateFor, userId));
