@@ -232,6 +232,16 @@ async function getUserSubscriptionPlanes(userId) {
  * @returns {Promise<void>}
  */
 async function validateBlocking(userId, refUserId, validateRestricted = false) {
+  const refUser = await User.findOne({
+    where: { id: refUserId },
+    raw: true,
+    ignoreHook: true,
+    attributes: ['active'],
+  });
+
+  if (!refUser) throw new ConflictError('User not exists');
+  if (!refUser.active) throw new ConflictError('Deactivated user');
+
   if (await checkUsersConnectionByList(userId, 'blocked', refUserId))
     throw new ConflictError('Blocked user');
 
@@ -285,6 +295,12 @@ async function fetchUsersConnectionsDetails(userId, validateFor) {
  * @returns {Promise<any>}
  */
 async function fetchNotAllowedUsers(userId, includeRestricted = false) {
+  const expectedListTypes = ['blocked'];
+
+  if (includeRestricted) {
+    expectedListTypes.push('restricted');
+  }
+
   let blockedUsers = (
     await Connections.findAll({
       attributes: ['userId'],
@@ -293,19 +309,13 @@ async function fetchNotAllowedUsers(userId, includeRestricted = false) {
           attributes: [],
           model: Lists,
           as: 'list',
-          where: { userId, type: 'blocked' },
+          where: { userId, type: { [Op.in]: expectedListTypes } },
           required: true,
         },
       ],
       raw: true,
     })
   ).map((el) => el.userId);
-
-  const expectedListTypes = ['blocked'];
-
-  if (includeRestricted) {
-    expectedListTypes.push('restricted');
-  }
 
   const blockedFromUsers = (
     await Lists.findAll({

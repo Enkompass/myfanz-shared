@@ -20,7 +20,7 @@ async function getUserById(id, ignoreHook = false, validateFor = undefined) {
   if (validateFor) {
     user = {
       ...user,
-      ...(await fetchUsersConnectionsDetails(validateFor, id)),
+      ...(await fetchUsersConnectionsDetails(id, validateFor)),
     };
   }
 
