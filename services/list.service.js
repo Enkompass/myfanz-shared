@@ -175,6 +175,29 @@ async function fetchActiveSubscription(userId, toUserId) {
 }
 
 /**
+ * Return users active subscription existing flag
+ * @param userId {number} - user id subscriber
+ * @param toUserId {number} - user id to subscribe
+ * @returns {Promise<boolean>}
+ */
+async function checkActiveSubscription(userId, toUserId) {
+  const activeSubscription = await Connections.findOne({
+    where: { userId: toUserId, expiredAt: { [Op.is]: null } },
+    include: [
+      {
+        model: Lists,
+        as: 'list',
+        where: { userId, type: 'following' },
+        required: true,
+      },
+    ],
+    raw: true,
+  });
+
+  return !!activeSubscription;
+}
+
+/**
  * Fetch users active subscription details
  * @param userId {number} - user id subscriber
  * @param refUserId {number} - user id to subscribe
@@ -345,6 +368,7 @@ module.exports = {
   fetchUsersListsIncludedUser,
   fetchUserListByType,
   fetchActiveSubscription,
+  checkActiveSubscription,
   fetchNotAllowedUsers,
   fetchUsersConnectionsDetails,
   // checkUsersConnectionByListType,
