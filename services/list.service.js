@@ -124,6 +124,12 @@ async function fetchUsersInConnection(userId, slug, active = true) {
     ],
   });
 
+  if (!list)
+    return {
+      users: [],
+      totalConnections: 0,
+    };
+
   list = list.dataValues;
   let connections = list.connections;
 

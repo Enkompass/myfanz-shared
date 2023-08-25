@@ -7,6 +7,7 @@ const axios = require('axios');
  * @param description {string} - payment description
  * @param type {'tip'|'post_tip'|'message_tip'|'stream_tip'|'story_tip'|'unlock_post'|'message_unlock'|'subscribe'} - payment description
  * @param message {string} - payment description
+ * @param cardId {number} - card id
  * @returns {Promise<(*&{success: boolean})|*|{success: boolean, message: string}>}
  */
 module.exports.makePayment = async function (
@@ -15,7 +16,8 @@ module.exports.makePayment = async function (
   amount,
   description,
   type,
-  message
+  message,
+  cardId
 ) {
   try {
     const mainAppUrl = process.env.MAIN_APP_URL;
@@ -27,7 +29,7 @@ module.exports.makePayment = async function (
 
     const response = await axios({
       method: 'post',
-      url: `${mainAppUrl}/payment-srv/payment/balance`,
+      url: `${mainAppUrl}/payment-srv/payment`,
       headers: {
         Cookie: cookie, // Pass the active cookie session from the incoming request
         'is-internal': true,
@@ -38,6 +40,7 @@ module.exports.makePayment = async function (
         description,
         type,
         message,
+        cardId,
       },
     });
     console.log('response ', response.data);
@@ -45,6 +48,15 @@ module.exports.makePayment = async function (
     return response.data;
   } catch (e) {
     console.log('makePayment err => ', e.response.data);
-    return { success: false, ...e.response.data };
+    const errData = {
+      success: false,
+      ...e.response.data,
+    };
+
+    if (errData.errors) {
+      const key = Object.keys(errData.errors)[0];
+      errData.message = `${key}-${errData.errors[key]}`;
+    }
+    return errData;
   }
 };
