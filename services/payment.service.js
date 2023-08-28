@@ -4,7 +4,7 @@ const axios = require('axios');
  * @param cookie - session cookie
  * @param toUserId {number} -  receiver user id
  * @param amount {number} - payment amount
- * @param description {string} - payment description
+ * @param itemId {string} - payment item id
  * @param type {'tip'|'post_tip'|'message_tip'|'stream_tip'|'story_tip'|'unlock_post'|'message_unlock'|'subscribe'} - payment description
  * @param message {string} - payment description
  * @param cardId {number} - card id
@@ -14,7 +14,7 @@ module.exports.makePayment = async function (
   cookie,
   toUserId,
   amount,
-  description,
+  itemId,
   type,
   message,
   cardId
@@ -37,7 +37,7 @@ module.exports.makePayment = async function (
       data: {
         toUserId,
         amount,
-        description,
+        itemId,
         type,
         message,
         cardId,
