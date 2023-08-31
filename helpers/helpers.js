@@ -1,4 +1,5 @@
 const { ConflictError } = require('../errors');
+const axios = require('axios');
 
 const userRoles = [
   { id: 1, role: 'user' },
@@ -156,4 +157,52 @@ exports.paginatePg = async function (model, options, query) {
       nextPage: totalPages > page ? page + 1 : null,
     },
   };
+};
+
+/**
+ * Make authorized internal request
+ * @param cookie - cookie session
+ * @param options {axios.AxiosRequestConfig}
+ * @returns {Promise<(*&{success: boolean})|*|{success: boolean, message: string}>}
+ */
+module.exports.makeAuthorizedRequest = async function (cookie, options) {
+  if (!options) throw new ConflictError('Invalid request options');
+
+  try {
+    const mainAppUrl = process.env.MAIN_APP_URL;
+
+    if (!mainAppUrl)
+      return {
+        success: false,
+        message: 'Main app URL not defined',
+      };
+    let headers = {
+      Cookie: cookie, // Pass the active cookie session from the incoming request
+      'is-internal': true,
+    };
+
+    if (options.headers) headers = { ...options.headers, ...headers };
+    if (!options.method) options.method = 'get';
+
+    const response = await axios({
+      ...options,
+      url: mainAppUrl + options.url,
+      headers,
+    });
+    console.log('makeAuthorizedRequest response ', response.data);
+
+    return response.data;
+  } catch (e) {
+    console.log('makeAuthorizedRequest err => ', e.response.data);
+    const errData = {
+      success: false,
+      ...e.response.data,
+    };
+
+    if (errData.errors) {
+      const key = Object.keys(errData.errors)[0];
+      errData.message = `${key}-${errData.errors[key]}`;
+    }
+    return errData;
+  }
 };
