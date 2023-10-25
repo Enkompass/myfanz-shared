@@ -1,5 +1,10 @@
 const axios = require('axios');
-const { User, UserDetails, UserSettings } = require('../models/index');
+const {
+  User,
+  UserDetails,
+  UserSettings,
+  Referrals,
+} = require('../models/index');
 const { Sequelize } = require('sequelize');
 const { fetchUsersConnectionsDetails } = require('./list.service');
 const { Op } = Sequelize;
@@ -199,6 +204,20 @@ async function getUserSettings(userId) {
   });
 }
 
+/**
+ * Get user referral
+ * @param userId
+ * @returns {Promise<any>}
+ */
+async function getUserReferral(userId) {
+  return Referrals.findOne({
+    where: {
+      userId,
+    },
+    raw: true,
+  });
+}
+
 module.exports = {
   getUserById,
   getUserByFilter,
@@ -209,4 +228,5 @@ module.exports = {
   getUserSettings,
   fetchUserDataByFilter,
   getUsersIdsByFilter,
+  getUserReferral,
 };
