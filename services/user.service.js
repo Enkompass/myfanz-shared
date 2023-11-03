@@ -14,10 +14,17 @@ const { Op } = Sequelize;
  * @param id {number} - user id to get
  * @param ignoreHook {boolean} [ignoreHook=false] - if true hooks not affected (does not get avatar and cover images)
  * @param validateFor {number|undefined} [validateFor=undefined] - if passed validated users connections
+ * @param attributes {Array<'displayName'|'email'|'username'|'emailVerifiedAt'|'roleId'|'hasCard'|'lastActivity'|'active'|'avatar'|'cover'>} [attributes=undefined] - list of fields need to get, if not passed get all fields
  * @returns {Promise<Model>}
  */
-async function getUserById(id, ignoreHook = false, validateFor = undefined) {
+async function getUserById(
+  id,
+  ignoreHook = false,
+  validateFor = undefined,
+  attributes = undefined
+) {
   let user = await User.scope('withId').findOne({
+    attributes,
     where: { id },
     ignoreHook,
     raw: true,
@@ -218,6 +225,30 @@ async function getUserReferral(userId) {
   });
 }
 
+/**
+ * Get user data by username, returns null if not found
+ * @param username {string} - username of user
+ * @param scope {'defaultScope'/'withPassword'/'withId'/'withAll'} [scope='defaultScope'] - scope
+ * @param raw {boolean} [raw=true] - raw
+ * @param ignoreHook {boolean} [ignoreHook=false] - ignoreHook
+ * @returns {Promise<any|null>}
+ */
+async function getUserByUsername(
+  username,
+  scope = 'defaultScope',
+  raw = true,
+  ignoreHook = false
+) {
+  const user = await User.scope(scope).findOne({
+    where: { username },
+    raw,
+    ignoreHook,
+  });
+
+  if (user) return user;
+  return null;
+}
+
 module.exports = {
   getUserById,
   getUserByFilter,
@@ -229,4 +260,5 @@ module.exports = {
   fetchUserDataByFilter,
   getUsersIdsByFilter,
   getUserReferral,
+  getUserByUsername,
 };

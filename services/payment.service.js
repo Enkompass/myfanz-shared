@@ -5,7 +5,7 @@ const axios = require('axios');
  * @param toUserId {number} -  receiver user id
  * @param amount {number} - payment amount
  * @param itemId {string} - payment item id
- * @param type {'tip'|'post_tip'|'message_tip'|'stream_tip'|'story_tip'|'unlock_post'|'message_unlock'|'subscribe'} - payment description
+ * @param type {'tip'|'post_tip'|'message_tip'|'stream_tip'|'story_tip'|'unlock_post'|'message_unlock'|'subscribe'|'unlock_stream'} - payment type
  * @param message {string} - payment description
  * @param cardId {number} - card id
  * @returns {Promise<(*&{success: boolean})|*|{success: boolean, message: string}>}

@@ -1,3 +1,4 @@
+const AllModels = require('../models/index');
 const {
   User,
   Lists,
@@ -370,6 +371,59 @@ async function fetchNotAllowedUsers(userId, includeRestricted = false) {
   return union(blockedUsers, blockedFromUsers) || [];
 }
 
+/**
+ * Fetch data from Lists table by filter
+ * @param modelName {'BaseLists'|'Connections'|'CreatorSettings'|'Lists'|'LoginSession'|'Referrals'|'ReportedUsers'|'Role'|'SubscriptionBundles'|'SubscriptionsDetails'|'User'|'UserDetails'|'UserSettings'} - model name
+ * @param filter {object} - pg filter query
+ * @param onlyOne {boolean} [onlyOne=false] - if true then run findOne, otherwise findAll
+ * @returns {Promise<any>}
+ */
+async function fetchDataFromModelByFilter(modelName, filter, onlyOne = false) {
+  return AllModels?.[modelName]?.[onlyOne ? 'findOne' : 'findAll']({
+    where: filter,
+    raw: true,
+  });
+}
+
+/**
+ * Fetch all unique user ids from lists
+ * @param lists {Array<number>} - Array of list id
+ * @param active {boolean} [active=true] - Active flag, if true return only active connections in lists, otherwise - all
+ * @param raw {boolean} [raw=true] - Raw flag
+ * @returns {Promise<Model[]>}
+ */
+async function fetchListsAllUsers(lists, active = true, raw = true) {
+  return await Connections.findAll({
+    where: {
+      listId: { [Op.in]: lists },
+      expiredAt: { [Op[active ? 'is' : 'ne']]: null },
+    },
+    attributes: ['userId'],
+    group: ['userId'],
+    raw,
+  });
+}
+
+/**
+ * Fetch list by connections by list id-es , user id which included ref user
+ * @param userId {number} - user id
+ * @param lists {Array<number>} - list id-es
+ * @param refUserId {number} - ref user id
+ * @returns {Promise<Model>}
+ */
+async function checkUsersConnectionByLists(userId, lists, refUserId) {
+  return Lists.findOne({
+    where: { userId, id: { [Op.in]: lists } },
+    include: {
+      model: Connections,
+      as: 'connections',
+      attributes: ['userId'],
+      where: { userId: refUserId, expiredAt: { [Op.is]: null } },
+      required: true,
+    },
+  });
+}
+
 module.exports = {
   fetchUsersListsIncludedUser,
   fetchUserListByType,
@@ -385,4 +439,7 @@ module.exports = {
   getUsersSubscriptionsDetails,
   getUserSubscriptionPlanes,
   validateBlocking,
+  fetchDataFromModelByFilter,
+  fetchListsAllUsers,
+  checkUsersConnectionByLists,
 };

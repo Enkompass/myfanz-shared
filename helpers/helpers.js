@@ -165,7 +165,7 @@ exports.paginatePg = async function (model, options, query) {
  * @param options {axios.AxiosRequestConfig}
  * @returns {Promise<(*&{success: boolean})|*|{success: boolean, message: string}>}
  */
-module.exports.makeAuthorizedRequest = async function (cookie, options) {
+exports.makeAuthorizedRequest = async function (cookie, options) {
   if (!options) throw new ConflictError('Invalid request options');
 
   try {
@@ -205,4 +205,13 @@ module.exports.makeAuthorizedRequest = async function (cookie, options) {
     }
     return errData;
   }
+};
+
+/**
+ * Generate random hex string (string length equal size*2)
+ * @param size {number} - size in bytes
+ * @returns {string}
+ */
+exports.generateRandomToken = (size = 48) => {
+  return require('crypto').randomBytes(size).toString('hex');
 };
