@@ -27,6 +27,9 @@ exports.errorHandler = function (err, req, res, next) {
       responseValue.errors = errors;
       delete responseValue.message;
       break;
+    case 'NotFoundError':
+      responseValue.code = 404;
+      break;
     case 'ConflictError':
       responseValue.code = 409;
       break;
