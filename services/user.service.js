@@ -59,7 +59,7 @@ async function getUserByFilter(
   if (validateFor) {
     user = {
       ...user,
-      ...(await fetchUsersConnectionsDetails(validateFor, user.id)),
+      ...(await fetchUsersConnectionsDetails(user.id, validateFor)),
     };
   }
 
