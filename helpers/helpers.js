@@ -1,5 +1,7 @@
-const { ConflictError } = require('../errors');
+const validUrl = require('valid-url');
 const axios = require('axios');
+const crypto = require('crypto');
+const { ConflictError } = require('../errors');
 
 const userRoles = [
   { id: 1, role: 'user' },
@@ -213,5 +215,22 @@ exports.makeAuthorizedRequest = async function (cookie, options) {
  * @returns {string}
  */
 exports.generateRandomToken = (size = 48) => {
-  return require('crypto').randomBytes(size).toString('hex');
+  return crypto.randomBytes(size).toString('hex');
 };
+
+/**
+ * Generate hash by hash algorithm
+ * @param val {string} - value need to encode
+ * @param algorithm {string} [algorithm='md5'] - hash algorithm
+ * @returns {string}
+ */
+exports.generateHash = (val, algorithm = 'md5') => {
+  return crypto.createHash(algorithm).update(String(val)).digest('hex');
+};
+
+/**
+ * Check value is valid URL
+ * @param val
+ * @returns {string}
+ */
+exports.isValidUrl = (val) => validUrl.isUri(val);

@@ -5,7 +5,6 @@ exports.wrongUrl = function () {
 };
 
 exports.errorHandler = function (err, req, res, next) {
-  console.log('errorHandler ', err);
   // const statusCode = 500;
   let responseValue = {
     success: false,
@@ -52,8 +51,6 @@ exports.errorHandler = function (err, req, res, next) {
       responseValue.token = err.token;
       break;
     case 'TrustFlowError':
-      console.log('err ', err);
-      console.log('err message ', err.message);
       responseValue.code = 413;
       responseValue.message = err.message;
       // responseValue.type = err.type;

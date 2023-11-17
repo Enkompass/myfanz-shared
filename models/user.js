@@ -1,7 +1,8 @@
 'use strict';
 const { Model } = require('sequelize');
-const async = require('async');
-const { getObjectSignedUrl } = require('myfanz-media');
+const { isValidUrl } = require('../helpers/helpers');
+
+const mainAppUrl = process.env.APP_URL || process.env.MAIN_APP_URL;
 
 module.exports = (sequelize, DataTypes) => {
   class User extends Model {
@@ -80,39 +81,35 @@ module.exports = (sequelize, DataTypes) => {
   );
 
   User.addHook('afterFind', async (result, options) => {
-    const { ignoreHook } = options;
+    const { ignoreHook, getAvatar, getCover, getSmallCover } = options;
+    console.log('hook after find ', ignoreHook);
+    console.log('hook after find getAvatar ', getAvatar);
     if (ignoreHook) return result;
-
     if (Array.isArray(result)) {
-      return new Promise((resolve, reject) => {
-        async.eachLimit(
-          result,
-          5,
-          async (row) => {
-            let index = result.findIndex((el) => el.id === row.id);
-            // result.role = await getRole(row.roleId);
+      return result.map((el) => {
+        if (getAvatar && el.avatar && !isValidUrl(el.avatar)) {
+          el.avatar = `${mainAppUrl}/uploads/${el.avatar}`;
+        }
 
-            if (row.avatar) {
-              result[index].avatar = await getObjectSignedUrl(row.avatar);
-            }
-
-            if (row.cover) {
-              result[index].cover = await getObjectSignedUrl(row.cover);
-            }
-
-            // nextRow();
-          },
-          (err) => {
-            if (err) reject(err);
-            else resolve(result);
+        if (el.cover) {
+          if (getCover) el.cover = `${mainAppUrl}/uploads/${el.cover}`;
+          if (getSmallCover) {
+            const splitFileName = el.cover.split('/');
+            el.cover = `${mainAppUrl}/uploads/${splitFileName[0]}/small-${splitFileName[1]}`;
           }
-        );
+        }
       });
     } else {
       if (!result) return result;
-      if (result.avatar)
-        result.avatar = await getObjectSignedUrl(result.avatar);
-      if (result.cover) result.cover = await getObjectSignedUrl(result.cover);
+      if (getAvatar && result.avatar && !isValidUrl(result.avatar))
+        result.avatar = `${mainAppUrl}/uploads/${result.avatar}`;
+      if (result.cover) {
+        if (getCover) result.cover = `${mainAppUrl}/uploads/${result.cover}`;
+        if (getSmallCover) {
+          const splitFileName = result.cover.split('/');
+          result.cover = `${mainAppUrl}/uploads/${splitFileName[0]}/small-${splitFileName[1]}`;
+        }
+      }
       return result;
     }
 

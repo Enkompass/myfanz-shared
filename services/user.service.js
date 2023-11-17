@@ -15,18 +15,27 @@ const { Op } = Sequelize;
  * @param ignoreHook {boolean} [ignoreHook=false] - if true hooks not affected (does not get avatar and cover images)
  * @param validateFor {number|undefined} [validateFor=undefined] - if passed validated users connections
  * @param attributes {Array<'displayName'|'email'|'username'|'emailVerifiedAt'|'roleId'|'hasCard'|'lastActivity'|'active'|'avatar'|'cover'>} [attributes=undefined] - list of fields need to get, if not passed get all fields
+ * @param getAvatar {boolean} [getAvatar=true] - get avatar
+ * @param getCover {boolean} [getCover=true] - get cover
+ * @param getSmallCover {boolean} [getSmallCover=false] - get small cover
  * @returns {Promise<Model>}
  */
 async function getUserById(
   id,
   ignoreHook = false,
   validateFor = undefined,
-  attributes = undefined
+  attributes = undefined,
+  getAvatar = true,
+  getCover = true,
+  getSmallCover = false
 ) {
   let user = await User.scope('withId').findOne({
     attributes,
     where: { id },
     ignoreHook,
+    getAvatar,
+    getCover,
+    getSmallCover,
     raw: true,
   });
   if (validateFor) {
@@ -44,16 +53,25 @@ async function getUserById(
  * @param filter {object} - filter to get user
  * @param ignoreHook {boolean} [ignoreHook=false] - if true hooks not affected (does not get avatar and cover images)
  * @param validateFor {number|undefined} [validateFor=undefined] - if passed validated users connections
+ * @param getAvatar {boolean} [getAvatar=true] - get avatar
+ * @param getCover {boolean} [getCover=true] - get cover
+ * @param getSmallCover {boolean} [getSmallCover=false] - get small cover
  * @returns {Promise<Model>}
  */
 async function getUserByFilter(
   filter,
   ignoreHook = false,
-  validateFor = undefined
+  validateFor = undefined,
+  getAvatar = true,
+  getCover = true,
+  getSmallCover = false
 ) {
   let user = await User.scope('withId').findOne({
     where: filter,
     ignoreHook,
+    getAvatar,
+    getCover,
+    getSmallCover,
     raw: true,
   });
   if (validateFor) {
@@ -91,12 +109,21 @@ async function getUsersDataByIds(userIds) {
   });
 }
 
-async function getUserAllData(userId, ignoreHook = false) {
+async function getUserAllData(
+  userId,
+  ignoreHook = false,
+  getAvatar = true,
+  getCover = true,
+  getSmallCover = false
+) {
   return User.scope('withId').findOne({
     where: { id: userId },
     include: [{ model: UserDetails, as: 'details' }],
     raw: true,
     ignoreHook,
+    getAvatar,
+    getCover,
+    getSmallCover,
   });
 }
 
@@ -112,37 +139,6 @@ async function getUserDetails(userId) {
 async function fetchUserDataByFilter(filter) {
   return User.scope('withId').findOne({ where: filter, raw: true });
 }
-
-/**
- * Get user data by email, returns null if not found
- * @param filter {object} - filter to get user
- * @param scope {'defaultScope'/'withPassword'/'withId'/'withAll'} [scope='defaultScope'] - scope
- * @param raw {boolean} [raw=true] - raw
- * @param ignoreHook {boolean} [ignoreHook=false] - ignoreHook for avatar and cover
- * @returns {Promise<any|null>}
- */
-// async function getUserByFilter(
-//   filter,
-//   scope = 'defaultScope',
-//   raw = true,
-//   ignoreHook = false
-// ) {
-//   const user = await User.scope(scope).findOne({
-//     where: filter,
-//     ignoreHook,
-//     include: [
-//       {
-//         model: UserDetails,
-//         as: 'details',
-//       },
-//     ],
-//   });
-//
-//   if (!user) return null;
-//
-//   if (raw) return user.dataValues;
-//   return user;
-// }
 
 /**
  * Make report by request to main api service
@@ -231,18 +227,27 @@ async function getUserReferral(userId) {
  * @param scope {'defaultScope'/'withPassword'/'withId'/'withAll'} [scope='defaultScope'] - scope
  * @param raw {boolean} [raw=true] - raw
  * @param ignoreHook {boolean} [ignoreHook=false] - ignoreHook
+ * @param getAvatar {boolean} [getAvatar=true] - get avatar
+ * @param getCover {boolean} [getCover=true] - get cover
+ * @param getSmallCover {boolean} [getSmallCover=false] - get small cover
  * @returns {Promise<any|null>}
  */
 async function getUserByUsername(
   username,
   scope = 'defaultScope',
   raw = true,
-  ignoreHook = false
+  ignoreHook = false,
+  getAvatar = true,
+  getCover = true,
+  getSmallCover = false
 ) {
   const user = await User.scope(scope).findOne({
     where: { username },
     raw,
     ignoreHook,
+    getAvatar,
+    getCover,
+    getSmallCover,
   });
 
   if (user) return user;

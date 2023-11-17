@@ -1,6 +1,6 @@
 {
   "name": "myfanz-shared",
-  "version": "1.0.126",
+  "version": "1.0.132",
   "main": "index.js",
   "author": "Hovo Nazaryan <hovnaz96@gmail.com>",
   "license": "MIT",
@@ -21,9 +21,10 @@
     "ioredis": "^5.3.0",
     "joi": "^17.7.0",
     "lodash": "^4.17.21",
-    "myfanz-media": "^1.0.77",
+    "myfanz-media": "^1.0.89",
     "pg": "^8.8.0",
-    "sequelize": "^6.25.5"
+    "sequelize": "^6.25.5",
+    "valid-url": "^1.0.9"
   },
   "devDependencies": {
     "@babel/eslint-parser": "^7.19.1",
