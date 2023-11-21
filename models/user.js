@@ -2,7 +2,7 @@
 const { Model } = require('sequelize');
 const { isValidUrl } = require('../helpers/helpers');
 
-const mainAppUrl = process.env.APP_URL || process.env.MAIN_APP_URL;
+const appApiUrl = process.env.APP_API_URL;
 
 module.exports = (sequelize, DataTypes) => {
   class User extends Model {
@@ -88,26 +88,26 @@ module.exports = (sequelize, DataTypes) => {
     if (Array.isArray(result)) {
       return result.map((el) => {
         if (getAvatar && el.avatar && !isValidUrl(el.avatar)) {
-          el.avatar = `${mainAppUrl}/uploads/${el.avatar}`;
+          el.avatar = `${appApiUrl}/uploads/${el.avatar}`;
         }
 
         if (el.cover) {
-          if (getCover) el.cover = `${mainAppUrl}/uploads/${el.cover}`;
+          if (getCover) el.cover = `${appApiUrl}/uploads/${el.cover}`;
           if (getSmallCover) {
             const splitFileName = el.cover.split('/');
-            el.cover = `${mainAppUrl}/uploads/${splitFileName[0]}/small-${splitFileName[1]}`;
+            el.cover = `${appApiUrl}/uploads/${splitFileName[0]}/small-${splitFileName[1]}`;
           }
         }
       });
     } else {
       if (!result) return result;
       if (getAvatar && result.avatar && !isValidUrl(result.avatar))
-        result.avatar = `${mainAppUrl}/uploads/${result.avatar}`;
+        result.avatar = `${appApiUrl}/uploads/${result.avatar}`;
       if (result.cover) {
-        if (getCover) result.cover = `${mainAppUrl}/uploads/${result.cover}`;
+        if (getCover) result.cover = `${appApiUrl}/uploads/${result.cover}`;
         if (getSmallCover) {
           const splitFileName = result.cover.split('/');
-          result.cover = `${mainAppUrl}/uploads/${splitFileName[0]}/small-${splitFileName[1]}`;
+          result.cover = `${appApiUrl}/uploads/${splitFileName[0]}/small-${splitFileName[1]}`;
         }
       }
       return result;
