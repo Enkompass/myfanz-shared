@@ -15,39 +15,39 @@ const userRoles = [
  * @param role {'user' | 'member' | 'creator' | 'admin' } - role name
  * @returns {number}
  */
-module.exports.getRoleId = function (role) {
+function getRoleId(role) {
   return userRoles.find((el) => el.role === role)?.id;
-};
+}
 
 /**
  * Get role by role id
  * @param roleId {number } - role id
  * @returns {'user' | 'member' | 'creator' | 'admin'}
  */
-module.exports.getRoleFromId = function (roleId) {
+function getRoleFromId(roleId) {
   return userRoles.find((el) => el.id === roleId)?.role;
-};
+}
 
 /**
  * Return parsed from json data if data valid, otherwise return null (not crushed)
  * @param arg
  * @returns {any|null}
  */
-module.exports.jsonParser = function (arg) {
+function jsonParser(arg) {
   try {
     return JSON.parse(arg);
   } catch (e) {
     console.error('jsonParser error => ', e.message);
     return null;
   }
-};
+}
 
 /**
  * Capitalize first letter of string from argument and retrun it
  * @param str
  * @returns {string}
  */
-module.exports.capitalizeFirstLetter = function (str) {
+function capitalizeFirstLetter(str) {
   if (typeof str !== 'string') {
     throw new ConflictError('Expected a string');
   }
@@ -57,14 +57,14 @@ module.exports.capitalizeFirstLetter = function (str) {
   }
 
   return str.charAt(0).toUpperCase() + str.slice(1);
-};
+}
 
 /**
  * Convert query params
  * @param query
  * @returns {{limit: (*|number), page: (number|number)}}
  */
-exports.getQueryParams = (query) => {
+const getQueryParams = (query) => {
   const limit = query?.limit ? Number(query.limit) : 10;
   return {
     ...query,
@@ -78,7 +78,7 @@ exports.getQueryParams = (query) => {
  * @param query
  * @returns {{limit: (*|number), page: (number|number)}}
  */
-exports.convertQueryParams = (query) => {
+const convertQueryParams = (query) => {
   if (!query) query = {};
   let { limit, page } = query;
   limit = Number(limit) || 10;
@@ -108,7 +108,7 @@ exports.convertQueryParams = (query) => {
  * @param query
  * @returns {{limit: (*|number), page: (number|number)}}
  */
-exports.convertQueryParamsPg = (query) => {
+const convertQueryParamsPg = (query) => {
   if (!query) query = {};
   let { limit, page } = query;
   limit = Number(limit) || 10;
@@ -130,7 +130,7 @@ exports.convertQueryParamsPg = (query) => {
  * @param query - query params
  * @returns {Promise<{paginate: {hasPrevPage: boolean, perPage: number | number, hasNextPage: boolean, pagingCounter: number, nextPage: (*|null), totalPages: number, prevPage: (number|null), totalCount: *, currentPage: number | number}, items: *}>}
  */
-exports.paginatePg = async function (model, options, query) {
+async function paginatePg(model, options, query) {
   if (!query) query = {};
   let { limit, page } = query;
   limit = Number(limit) || 10;
@@ -159,7 +159,7 @@ exports.paginatePg = async function (model, options, query) {
       nextPage: totalPages > page ? page + 1 : null,
     },
   };
-};
+}
 
 /**
  * Make authorized internal request
@@ -167,7 +167,7 @@ exports.paginatePg = async function (model, options, query) {
  * @param options {axios.AxiosRequestConfig}
  * @returns {Promise<(*&{success: boolean})|*|{success: boolean, message: string}>}
  */
-exports.makeAuthorizedRequest = async function (cookie, options) {
+async function makeAuthorizedRequest(cookie, options) {
   if (!options) throw new ConflictError('Invalid request options');
 
   try {
@@ -207,16 +207,16 @@ exports.makeAuthorizedRequest = async function (cookie, options) {
     }
     return errData;
   }
-};
+}
 
 /**
  * Generate random hex string (string length equal size*2)
  * @param size {number} - size in bytes
  * @returns {string}
  */
-exports.generateRandomToken = (size = 48) => {
+function generateRandomToken(size = 48) {
   return crypto.randomBytes(size).toString('hex');
-};
+}
 
 /**
  * Generate hash by hash algorithm
@@ -224,13 +224,46 @@ exports.generateRandomToken = (size = 48) => {
  * @param algorithm {string} [algorithm='md5'] - hash algorithm
  * @returns {string}
  */
-exports.generateHash = (val, algorithm = 'md5') => {
+function generateHash(val, algorithm = 'md5') {
   return crypto.createHash(algorithm).update(String(val)).digest('hex');
-};
+}
 
 /**
  * Check value is valid URL
  * @param val
  * @returns {string}
  */
-exports.isValidUrl = (val) => validUrl.isUri(val);
+const isValidUrl = (val) => validUrl.isUri(val);
+
+/**
+ * Get avatar or cover photo link
+ * @param photo {string} - photo name (path)
+ * @param size {''|'small'} - size of photo (only for cover)
+ * @returns {string}
+ */
+function getProfilePhotoLink(photo, size = '') {
+  if (!photo) return photo;
+  if (isValidUrl(photo)) return photo;
+
+  if (!size) return `${process.env.APP_API_URL}/uploads/${photo}`;
+  else {
+    const splitFileName = photo.split('/');
+    return `${process.env.APP_API_URL}/uploads/${splitFileName[0]}/${size}-${splitFileName[1]}`;
+  }
+}
+
+module.exports = {
+  getRoleId,
+  getRoleFromId,
+  jsonParser,
+  capitalizeFirstLetter,
+  getQueryParams,
+  convertQueryParams,
+  convertQueryParamsPg,
+  paginatePg,
+  makeAuthorizedRequest,
+  generateRandomToken,
+  generateHash,
+  isValidUrl,
+  getProfilePhotoLink,
+};

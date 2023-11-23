@@ -1,8 +1,6 @@
 'use strict';
 const { Model } = require('sequelize');
-const { isValidUrl } = require('../helpers/helpers');
-
-const appApiUrl = process.env.APP_API_URL;
+const { getProfilePhotoLink } = require('../helpers/helpers');
 
 module.exports = (sequelize, DataTypes) => {
   class User extends Model {
@@ -87,28 +85,21 @@ module.exports = (sequelize, DataTypes) => {
     if (ignoreHook) return result;
     if (Array.isArray(result)) {
       return result.map((el) => {
-        if (getAvatar && el.avatar && !isValidUrl(el.avatar)) {
-          el.avatar = `${appApiUrl}/uploads/${el.avatar}`;
-        }
+        if (getAvatar) el.avatar = getProfilePhotoLink(el.avatar);
 
         if (el.cover) {
-          if (getCover) el.cover = `${appApiUrl}/uploads/${el.cover}`;
-          if (getSmallCover) {
-            const splitFileName = el.cover.split('/');
-            el.cover = `${appApiUrl}/uploads/${splitFileName[0]}/small-${splitFileName[1]}`;
-          }
+          if (getCover) el.cover = getProfilePhotoLink(el.cover);
+          else if (getSmallCover)
+            el.cover = getProfilePhotoLink(el.cover, 'small');
         }
       });
     } else {
       if (!result) return result;
-      if (getAvatar && result.avatar && !isValidUrl(result.avatar))
-        result.avatar = `${appApiUrl}/uploads/${result.avatar}`;
+      if (getAvatar) result.avatar = getProfilePhotoLink(result.avatar);
       if (result.cover) {
-        if (getCover) result.cover = `${appApiUrl}/uploads/${result.cover}`;
-        if (getSmallCover) {
-          const splitFileName = result.cover.split('/');
-          result.cover = `${appApiUrl}/uploads/${splitFileName[0]}/small-${splitFileName[1]}`;
-        }
+        if (getCover) result.cover = getProfilePhotoLink(result.cover);
+        else if (getSmallCover)
+          result.cover = getProfilePhotoLink(result.cover, 'small');
       }
       return result;
     }
