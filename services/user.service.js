@@ -161,7 +161,7 @@ async function makeReport(
   itemUrl
 ) {
   try {
-    const mainAppUrl = process.env.MAIN_APP_URL;
+    const mainAppUrl = process.env.APP_API_URL;
     if (!mainAppUrl)
       return {
         success: false,

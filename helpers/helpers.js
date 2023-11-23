@@ -171,7 +171,7 @@ exports.makeAuthorizedRequest = async function (cookie, options) {
   if (!options) throw new ConflictError('Invalid request options');
 
   try {
-    const mainAppUrl = process.env.MAIN_APP_URL;
+    const mainAppUrl = process.env.APP_API_URL;
 
     if (!mainAppUrl)
       return {
