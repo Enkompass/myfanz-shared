@@ -1,12 +1,20 @@
 const axios = require('axios');
 const {
+  sequelize,
   User,
   UserDetails,
   UserSettings,
+  CreatorSettings,
+  SubscriptionBundles,
   Referrals,
 } = require('../models/index');
 const { Sequelize } = require('sequelize');
-const { fetchUsersConnectionsDetails } = require('./list.service');
+const {
+  fetchUsersConnectionsDetails,
+  fetchActiveSubscriptions,
+} = require('./list.service');
+const { ConflictError } = require('../errors');
+const { checkUsersHasActiveStory } = require('./creator.service');
 const { Op } = Sequelize;
 
 /**
@@ -254,6 +262,223 @@ async function getUserByUsername(
   return null;
 }
 
+/**
+ * Fetch users detailed information by options, return also validations result by validationOptions if validateForUser passed
+ * @param users {Array<number>|number} - User ides need to get, or one user id
+ * @param validateForUser {number|null} [validateForUser=null] - Validate for user id
+ * @param attributes {Array<'id'|'displayName'|'email'|'username'|'emailVerifiedAt'|'roleId'|'hasCard'|'lastActivity'|'active'|'avatar'|'cover'|any>} [attributes=undefined] - list of fields need to get, if not passed get all fields
+ * @param photoOptions {{ignoreHooks?: boolean,getAvatar?:boolean,getCover?:boolean,getSmallCover?:boolean}}
+ * @param getOptions {{roleName?: boolean,activeSubscription?: boolean,subscriptionPlanes?: boolean,hasStory?:true,listsIncudedUser?:boolean}}
+ * @param validationOptions {{subscribed?: boolean,blocked?: boolean, blockedReversal?: boolean, restricted?: boolean,restrictedReversal?: boolean,reported?:boolean}}
+ * @param cookie {string|undefined} - [cookie=undefined] - Session cookie, required for external requests, for example for get hasStory
+ * @returns {Promise<any>}
+ */
+async function fetchUsersData(
+  users,
+  validateForUser = null,
+  attributes = [],
+  photoOptions = {},
+  getOptions = {},
+  validationOptions = {},
+  cookie = undefined
+) {
+  const result = {};
+  if (!photoOptions) photoOptions = {};
+  let oneUserId;
+  if (!Array.isArray(users)) {
+    oneUserId = Number(users);
+    if (isNaN(oneUserId))
+      throw new ConflictError(
+        `Invalid value for 'users', must by array of user id-es or one user id `
+      );
+
+    users = [oneUserId];
+  }
+
+  if (!attributes || !attributes.length)
+    attributes = [
+      'id',
+      'displayName',
+      'email',
+      'username',
+      'emailVerifiedAt',
+      'roleId',
+      'hasCard',
+      'lastActivity',
+      'active',
+      'avatar',
+      'cover',
+    ];
+
+  if (getOptions.roleName) {
+    attributes.push([
+      sequelize.literal(`(
+                    SELECT name
+                    FROM "Roles" 
+                    WHERE "id" = "User"."roleId"
+                )`),
+      'role',
+    ]);
+  }
+
+  let include = [];
+  let activeSubscriptions = [];
+  let activeStories = {};
+
+  if (getOptions.subscriptionPlanes) {
+    include.push(
+      {
+        attributes: ['subscriptionPrice'],
+        model: CreatorSettings,
+        as: 'creatorSettings',
+        raw: true,
+      },
+      {
+        attributes: ['id', 'price', 'discount', 'duration'],
+        model: SubscriptionBundles,
+        as: 'userSubscriptionBundles',
+        raw: true,
+      }
+    );
+
+    attributes.push([
+      sequelize.literal(`(
+                    "creatorSettings"."subscriptionPrice"
+                )`),
+      'subscriptionPrice',
+    ]);
+  }
+
+  if (getOptions.hasStory && cookie) {
+    activeStories = await checkUsersHasActiveStory(users, cookie);
+  }
+
+  if (validateForUser) {
+    if (validationOptions.subscribed && !getOptions.activeSubscription) {
+      attributes.push([
+        sequelize.literal(`(
+                    SELECT true
+                    FROM "Lists" AS l
+                    INNER JOIN "Connections" as c ON l.id = c."listId"
+                    WHERE l."userId" = ${validateForUser} AND l."type" = 'following' AND c."userId" = "User".id AND c."expiredAt" IS NULL
+                ) IS NOT NULL`),
+        'subscribed',
+      ]);
+    }
+
+    if (validationOptions.blocked) {
+      attributes.push([
+        sequelize.literal(`(
+                    SELECT l.id
+                    FROM "Lists" AS l
+                    INNER JOIN "Connections" as c ON l.id = c."listId"
+                    WHERE l."userId" = ${validateForUser} AND l."type" = 'blocked' AND c."userId" = "User".id AND c."expiredAt" IS NULL
+                ) IS NOT NULL`),
+        'blocked',
+      ]);
+    }
+
+    if (validationOptions.blockedReversal) {
+      attributes.push([
+        sequelize.literal(`(
+                    SELECT l.id
+                    FROM "Lists" AS l
+                    INNER JOIN "Connections" as c ON l.id = c."listId"
+                    WHERE l."userId" = "User".id AND l."type" = 'blocked' AND c."userId" = ${validateForUser} AND c."expiredAt" IS NULL
+                ) IS NOT NULL`),
+        'blockedReversal',
+      ]);
+    }
+
+    if (validationOptions.restricted) {
+      attributes.push([
+        sequelize.literal(`(
+                    SELECT l.id
+                    FROM "Lists" AS l
+                    INNER JOIN "Connections" as c ON l.id = c."listId"
+                    WHERE l."userId" = ${validateForUser} AND l."type" = 'restricted' AND c."userId" = "User".id AND c."expiredAt" IS NULL
+                ) IS NOT NULL`),
+        'restricted',
+      ]);
+    }
+
+    if (validationOptions.restrictedReversal) {
+      attributes.push([
+        sequelize.literal(`(
+                    SELECT l.id
+                    FROM "Lists" AS l
+                    INNER JOIN "Connections" as c ON l.id = c."listId"
+                    WHERE l."userId" = "User".id AND l."type" = 'restricted' AND c."userId" = ${validateForUser} AND c."expiredAt" IS NULL
+                ) IS NOT NULL`),
+        'restrictedReversal',
+      ]);
+    }
+
+    if (validationOptions.reported) {
+      attributes.push([
+        sequelize.literal(`(
+                    SELECT r.id
+                    FROM "ReportedUsers" AS r                    
+                    WHERE r."userId" = "User".id AND r."byUserId" = ${validateForUser}
+                ) IS NOT NULL`),
+        'reported',
+      ]);
+    }
+
+    if (getOptions.activeSubscription) {
+      activeSubscriptions = await fetchActiveSubscriptions(
+        validateForUser,
+        users
+      );
+      console.log('activeSubscriptions ', activeSubscriptions);
+    }
+  }
+
+  let usersData = await User.scope('withId').findAll({
+    where: { id: { [Op.in]: users } },
+    attributes,
+    ...photoOptions,
+    include,
+  });
+
+  if (usersData.length) {
+    usersData.forEach(({ dataValues: user }) => {
+      if (getOptions.activeSubscription) {
+        user.subscribed = false;
+
+        const activeSubscription = activeSubscriptions.find(
+          (el) => el.userId === user.id
+        );
+
+        if (activeSubscription) {
+          user.currentSubscriptionPrice =
+            activeSubscription['subscriptionDetails.price'];
+          user.subscribedAt = new Date(activeSubscription['createdAt']);
+          user.subscriptionExpireAt = activeSubscription['expireAt'];
+        }
+      }
+
+      if (user.userSubscriptionBundles) {
+        user.userSubscriptionBundles = user.userSubscriptionBundles.map(
+          (el) => el.dataValues
+        );
+      }
+      delete user.creatorSettings;
+
+      if (getOptions.hasStory) {
+        user.hasStory = Boolean(activeStories[user.id]);
+      }
+
+      result[user.id] = user;
+    });
+
+    if (oneUserId) return result[oneUserId];
+
+    return result;
+  }
+  return null;
+}
+
 module.exports = {
   getUserById,
   getUserByFilter,
@@ -266,4 +491,5 @@ module.exports = {
   getUsersIdsByFilter,
   getUserReferral,
   getUserByUsername,
+  fetchUsersData,
 };
