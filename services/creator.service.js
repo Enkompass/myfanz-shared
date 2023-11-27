@@ -18,7 +18,7 @@ async function checkUsersHasActiveStory(users, cookie) {
   });
 
   console.log('checkUserHasActiveStory res ', res);
-  return Boolean(res?.data);
+  return res?.data;
 }
 
 module.exports = {

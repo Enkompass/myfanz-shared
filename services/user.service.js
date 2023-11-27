@@ -466,7 +466,8 @@ async function fetchUsersData(
       delete user.creatorSettings;
 
       if (getOptions.hasStory) {
-        user.hasStory = Boolean(activeStories[user.id]);
+        user.hasStory = activeStories[user.id]?.hasStory;
+        user.hasNewStory = activeStories[user.id]?.hasNewStory;
       }
 
       result[user.id] = user;
