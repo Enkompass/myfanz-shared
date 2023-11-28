@@ -2760,10 +2760,10 @@ ms@^2.1.1:
   resolved "https://registry.yarnpkg.com/ms/-/ms-2.1.3.tgz#574c8138ce1d2b5861f0b44579dbadd60c6615b2"
   integrity sha512-6FlzubTLZG3J2a/NVCAleEhjzq5oxgHyaCU9yYXvcLsvoVaHJq/s5xXI6/XXP6tz7R9xAOtHnSO/tXtF3WRTlA==
 
-myfanz-media@^1.0.95:
-  version "1.0.95"
-  resolved "https://registry.yarnpkg.com/myfanz-media/-/myfanz-media-1.0.95.tgz#9b8693c35e74f55f10a4dc3c9dadcbe7aed7f778"
-  integrity sha512-BC+J9uUIwYbeC5uK7PAXpv/Qhd9QOWlvNVuavKat8gVYlcjtIjmI2TOzqs2TQptIS9lSe0DSEa5rpFWI0xqFfA==
+myfanz-media@^1.0.96:
+  version "1.0.96"
+  resolved "https://registry.yarnpkg.com/myfanz-media/-/myfanz-media-1.0.96.tgz#e0708153b063da1bf992bd3842021a2e755307e2"
+  integrity sha512-FFQlmJxVBgyWLzzN82OautqqKXg7qR8cF0X13+vEnuwq/pry+MsgpBxmWuhMVcS6ljwzMHCFs0u9JcQ18b9mrg==
   dependencies:
     "@aws-sdk/client-s3" "^3.215.0"
     "@aws-sdk/s3-request-presigner" "^3.276.0"
