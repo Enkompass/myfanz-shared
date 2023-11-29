@@ -7,6 +7,8 @@ const {
   CreatorSettings,
   SubscriptionBundles,
   Referrals,
+  Connections,
+  Lists,
 } = require('../models/index');
 const { Sequelize } = require('sequelize');
 const {
@@ -268,7 +270,7 @@ async function getUserByUsername(
  * @param validateForUser {number|null} [validateForUser=null] - Validate for user id
  * @param attributes {Array<'id'|'displayName'|'email'|'username'|'emailVerifiedAt'|'roleId'|'hasCard'|'lastActivity'|'active'|'avatar'|'cover'|any>} [attributes=undefined] - list of fields need to get, if not passed get all fields
  * @param photoOptions {{ignoreHooks?: boolean,getAvatar?:boolean,getCover?:boolean,getSmallCover?:boolean}}
- * @param getOptions {{roleName?: boolean,activeSubscription?: boolean,subscriptionPlanes?: boolean,hasStory?:true,listsIncudedUser?:boolean}}
+ * @param getOptions {{roleName?: boolean,activeSubscription?: boolean,subscriptionPlanes?: boolean,hasStory?:true,listsIncludedUser?:boolean,keepFormatForOneUser?:boolean}}
  * @param validationOptions {{subscribed?: boolean,blocked?: boolean, blockedReversal?: boolean, restricted?: boolean,restrictedReversal?: boolean,reported?:boolean}}
  * @param cookie {string|undefined} - [cookie=undefined] - Session cookie, required for external requests, for example for get hasStory
  * @returns {Promise<any>}
@@ -324,6 +326,7 @@ async function fetchUsersData(
   let include = [];
   let activeSubscriptions = [];
   let activeStories = {};
+  let listsIncludedUser = {};
 
   if (getOptions.subscriptionPlanes) {
     include.push(
@@ -432,6 +435,36 @@ async function fetchUsersData(
       );
       console.log('activeSubscriptions ', activeSubscriptions);
     }
+
+    if (getOptions.listsIncludedUser) {
+      const lists = await Connections.findAll({
+        attributes: ['Connections.userId'],
+        where: {
+          userId: { [Op.in]: users },
+          expiredAt: { [Op.is]: null },
+        },
+        include: {
+          model: Lists,
+          as: 'list',
+          attributes: ['id', 'type', 'name'],
+          where: {
+            userId: validateForUser,
+            type: { [Op.ne]: 'followers' },
+          },
+          required: true,
+        },
+        raw: true,
+      });
+
+      lists.forEach((el) => {
+        if (!listsIncludedUser[el.userId]) listsIncludedUser[el.userId] = [];
+        listsIncludedUser[el.userId].push({
+          id: el['list.id'],
+          type: el['list.type'],
+          name: el['list.name'],
+        });
+      });
+    }
   }
 
   let usersData = await User.scope('withId').findAll({
@@ -470,10 +503,14 @@ async function fetchUsersData(
         user.hasNewStory = activeStories[user.id]?.hasNewStory;
       }
 
+      if (getOptions.listsIncludedUser) {
+        user.lists = listsIncludedUser[user.id] || [];
+      }
+
       result[user.id] = user;
     });
 
-    if (oneUserId) return result[oneUserId];
+    if (oneUserId && !getOptions.keepFormatForOneUser) return result[oneUserId];
 
     return result;
   }
