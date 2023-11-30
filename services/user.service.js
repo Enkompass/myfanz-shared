@@ -48,6 +48,16 @@ async function getUserById(
     getSmallCover,
     raw: true,
   });
+
+  if (!user) return null;
+
+  if (user.lastActivity) {
+    const userSettings = await UserSettings.findOne({
+      where: { userId: id },
+      raw: true,
+    });
+    if (!userSettings?.showActivityStatus) user.lastActivity = null;
+  }
   if (validateFor) {
     user = {
       ...user,
@@ -328,6 +338,24 @@ async function fetchUsersData(
   let activeStories = {};
   let listsIncludedUser = {};
 
+  if (attributes.includes('lastActivity')) {
+    include.push({
+      attributes: ['showActivityStatus'],
+      model: UserSettings,
+      as: 'UserSettings',
+      raw: true,
+    });
+
+    attributes = attributes.filter((el) => el !== 'lastActivity');
+
+    attributes.push([
+      sequelize.literal(`(
+                    CASE WHEN "UserSettings"."showActivityStatus" = true THEN "User"."lastActivity" ELSE NULL END
+                )`),
+      'lastActivity',
+    ]);
+  }
+
   if (getOptions.subscriptionPlanes) {
     include.push(
       {
@@ -484,6 +512,7 @@ async function fetchUsersData(
         );
 
         if (activeSubscription) {
+          user.subscribed = true;
           user.currentSubscriptionPrice =
             activeSubscription['subscriptionDetails.price'];
           user.subscribedAt = new Date(activeSubscription['createdAt']);
@@ -496,11 +525,12 @@ async function fetchUsersData(
           (el) => el.dataValues
         );
       }
+      delete user.UserSettings;
       delete user.creatorSettings;
 
       if (getOptions.hasStory) {
-        user.hasStory = activeStories[user.id]?.hasStory;
-        user.hasNewStory = activeStories[user.id]?.hasNewStory;
+        user.hasStory = Boolean(activeStories?.[user.id]?.hasStory);
+        user.hasNewStory = Boolean(activeStories?.[user.id]?.hasNewStory);
       }
 
       if (getOptions.listsIncludedUser) {

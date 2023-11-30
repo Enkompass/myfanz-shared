@@ -21,6 +21,11 @@ module.exports = (sequelize, DataTypes) => {
         foreignKey: 'userId',
       });
 
+      this.hasOne(models.UserSettings, {
+        as: 'UserSettings',
+        foreignKey: 'userId',
+      });
+
       this.hasOne(models.CreatorSettings, {
         as: 'creatorSettings',
         foreignKey: 'userId',
