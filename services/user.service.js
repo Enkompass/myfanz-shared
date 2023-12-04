@@ -521,9 +521,9 @@ async function fetchUsersData(
       }
 
       if (user.userSubscriptionBundles) {
-        user.userSubscriptionBundles = user.userSubscriptionBundles.map(
-          (el) => el.dataValues
-        );
+        user.userSubscriptionBundles = user.userSubscriptionBundles
+          .map((el) => el.dataValues)
+          .sort((a, b) => a.duration - b.duration);
       }
       delete user.UserSettings;
       delete user.creatorSettings;
