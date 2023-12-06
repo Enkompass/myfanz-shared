@@ -94,6 +94,8 @@ async function getUserByFilter(
     getSmallCover,
     raw: true,
   });
+  if (!user) return null;
+
   if (validateFor) {
     user = {
       ...user,
