@@ -9,6 +9,7 @@ const {
   Referrals,
   Connections,
   Lists,
+  StripeDetails,
 } = require('../models/index');
 const { Sequelize } = require('sequelize');
 const {
@@ -274,6 +275,14 @@ async function getUserByUsername(
 
   if (user) return user;
   return null;
+}
+
+/**
+ * TODO, Temp function , need to remove after payment service db correction
+ * @returns {Promise<Model[]>}
+ */
+async function fetchUsersStripeDetails(filter = {}) {
+  return StripeDetails.findAll({ where: filter, raw: true });
 }
 
 /**
@@ -562,4 +571,5 @@ module.exports = {
   getUserReferral,
   getUserByUsername,
   fetchUsersData,
+  fetchUsersStripeDetails,
 };
