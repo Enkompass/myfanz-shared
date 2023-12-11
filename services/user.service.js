@@ -10,6 +10,7 @@ const {
   Connections,
   Lists,
   StripeDetails,
+  CardAccounts,
 } = require('../models/index');
 const { Sequelize } = require('sequelize');
 const {
@@ -283,6 +284,22 @@ async function getUserByUsername(
  */
 async function fetchUsersStripeDetails(filter = {}) {
   return StripeDetails.findAll({ where: filter, raw: true });
+}
+
+/**
+ * TODO, Temp function , need to remove after payment service db correction
+ * @returns {Promise<Model[]>}
+ */
+async function fetchUsersCardAccounts(filter = {}) {
+  return CardAccounts.findAll({ where: filter, raw: true });
+}
+
+/**
+ * TODO, Temp function , need to remove after payment service db correction
+ * @returns {Promise<Model[]>}
+ */
+async function addUsersCardAccounts(data) {
+  return CardAccounts.create(data);
 }
 
 /**
@@ -571,5 +588,7 @@ module.exports = {
   getUserReferral,
   getUserByUsername,
   fetchUsersData,
-  fetchUsersStripeDetails,
+  fetchUsersStripeDetails, // temp
+  fetchUsersCardAccounts, // temp
+  addUsersCardAccounts, // temp
 };
