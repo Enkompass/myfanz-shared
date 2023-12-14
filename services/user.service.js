@@ -306,7 +306,7 @@ async function addUsersCardAccounts(data) {
  * Fetch users detailed information by options, return also validations result by validationOptions if validateForUser passed
  * @param users {Array<number>|number} - User ides need to get, or one user id
  * @param validateForUser {number|null} [validateForUser=null] - Validate for user id
- * @param attributes {Array<'id'|'displayName'|'email'|'username'|'emailVerifiedAt'|'roleId'|'hasCard'|'lastActivity'|'active'|'avatar'|'cover'|any>} [attributes=undefined] - list of fields need to get, if not passed get all fields
+ * @param attributes {Array<'id'|'displayName'|'email'|'username'|'emailVerifiedAt'|'roleId'|'hasCard'|'lastActivity'|'deletedAt'|'active'|'avatar'|'cover'|any>} [attributes=undefined] - list of fields need to get, if not passed get all fields
  * @param photoOptions {{ignoreHooks?: boolean,getAvatar?:boolean,getCover?:boolean,getSmallCover?:boolean}}
  * @param getOptions {{roleName?: boolean,activeSubscription?: boolean,subscriptionPlanes?: boolean,hasStory?:true,listsIncludedUser?:boolean,keepFormatForOneUser?:boolean}}
  * @param validationOptions {{subscribed?: boolean,blocked?: boolean, blockedReversal?: boolean, restricted?: boolean,restrictedReversal?: boolean,reported?:boolean}}
@@ -345,6 +345,7 @@ async function fetchUsersData(
       'roleId',
       'hasCard',
       'lastActivity',
+      'deletedAt',
       'active',
       'avatar',
       'cover',
