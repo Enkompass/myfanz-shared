@@ -98,6 +98,14 @@ async function getUserByFilter(
   });
   if (!user) return null;
 
+  if (user.lastActivity) {
+    const userSettings = await UserSettings.findOne({
+      where: { userId: user.id },
+      raw: true,
+    });
+    if (!userSettings?.showActivityStatus) user.lastActivity = null;
+  }
+
   if (validateFor) {
     user = {
       ...user,
@@ -274,7 +282,17 @@ async function getUserByUsername(
     getSmallCover,
   });
 
-  if (user) return user;
+  if (user && user.id && user.lastActivity) {
+    const userSettings = await UserSettings.findOne({
+      where: { userId: user.id },
+      raw: true,
+    });
+
+    if (!userSettings?.showActivityStatus) user.lastActivity = null;
+
+    return user;
+  }
+
   return null;
 }
 
