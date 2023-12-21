@@ -1,4 +1,5 @@
-const axios = require('axios');
+const { makeAuthorizedRequest } = require('../helpers/helpers');
+
 /**
  * Make payment by request to payment service
  * @param cookie - session cookie
@@ -20,20 +21,9 @@ module.exports.makePayment = async function (
   cardId
 ) {
   try {
-    const mainAppUrl = process.env.APP_API_URL;
-    if (!mainAppUrl)
-      return {
-        success: false,
-        message: 'Main app URL not defined',
-      };
-
-    const response = await axios({
-      method: 'post',
-      url: `${mainAppUrl}/payment-srv/payment`,
-      headers: {
-        Cookie: cookie, // Pass the active cookie session from the incoming request
-        'is-internal': true,
-      },
+    const response = await makeAuthorizedRequest(cookie, {
+      url: '/payment-srv/payment',
+      method: 'POST',
       data: {
         toUserId,
         amount,
@@ -43,9 +33,45 @@ module.exports.makePayment = async function (
         cardId,
       },
     });
-    console.log('response ', response.data);
 
-    return response.data;
+    console.log('response ', response?.data);
+
+    return response?.data;
+  } catch (e) {
+    console.log('makePayment err => ', e.response.data);
+    const errData = {
+      success: false,
+      ...e.response.data,
+    };
+
+    if (errData.errors) {
+      const key = Object.keys(errData.errors)[0];
+      errData.message = `${key}-${errData.errors[key]}`;
+    }
+    return errData;
+  }
+};
+
+/**
+ * Fetch user balance by request to payment service
+ * @param cookie - session cookie
+ * @param userId {number} -  user id
+ * @returns {Promise<(*&{success: boolean})|*|{success: boolean, message: string}>}
+ */
+module.exports.fetchUserBalance = async function (cookie, userId) {
+  try {
+    const response = await makeAuthorizedRequest(
+      cookie,
+      {
+        url: `/payment-srv/balance/${userId}`,
+        method: 'GET',
+      },
+      true
+    );
+
+    console.log('response ', response?.data);
+
+    return response?.data;
   } catch (e) {
     console.log('makePayment err => ', e.response.data);
     const errData = {

@@ -165,9 +165,10 @@ async function paginatePg(model, options, query) {
  * Make authorized internal request
  * @param cookie - cookie session
  * @param options {axios.AxiosRequestConfig}
+ * @param forAdmin {boolean} [forAdmin=false] - If signed user is admin , need to pass this value true
  * @returns {Promise<(*&{success: boolean})|*|{success: boolean, message: string}>}
  */
-async function makeAuthorizedRequest(cookie, options) {
+async function makeAuthorizedRequest(cookie, options, forAdmin = false) {
   if (!options) throw new ConflictError('Invalid request options');
 
   try {
@@ -182,6 +183,10 @@ async function makeAuthorizedRequest(cookie, options) {
       Cookie: cookie, // Pass the active cookie session from the incoming request
       'is-internal': true,
     };
+
+    if (forAdmin) {
+      headers.origin = process.env.ADMIN_URL;
+    }
 
     if (options.headers) headers = { ...options.headers, ...headers };
     if (!options.method) options.method = 'get';
