@@ -349,9 +349,15 @@ async function fetchUsersConnectionsDetails(userId, validateFor) {
  * @param userId {number} - for user id
  * @param includeRestricted {boolean} [includeRestricted=false] - restricted flag,
  * if passed false in response will add also users which restricted passed user
+ * @param excludeBlockedReversal {boolean} [excludeBlockedReversal=false] - exclude blocked reversal flag,
+ * if passed true in response will exclude users which blocked user
  * @returns {Promise<any>}
  */
-async function fetchNotAllowedUsers(userId, includeRestricted = false) {
+async function fetchNotAllowedUsers(
+  userId,
+  includeRestricted = false,
+  excludeBlockedReversal = false
+) {
   const expectedListTypes = ['blocked'];
 
   if (includeRestricted) {
@@ -374,28 +380,31 @@ async function fetchNotAllowedUsers(userId, includeRestricted = false) {
     })
   ).map((el) => el.userId);
 
-  const blockedFromUsers = (
-    await Lists.findAll({
-      attributes: ['Lists.userId'],
-      where: { type: { [Op.in]: expectedListTypes } },
-      include: [
-        {
-          attributes: [],
-          model: Connections,
-          as: 'connection',
-          where: { userId },
-          required: true,
-        },
-      ],
-      raw: true,
-      group: ['Lists.userId'],
-    })
-  ).map((el) => el.userId);
+  if (excludeBlockedReversal) {
+    const blockedFromUsers = (
+      await Lists.findAll({
+        attributes: ['Lists.userId'],
+        where: { type: { [Op.in]: expectedListTypes } },
+        include: [
+          {
+            attributes: [],
+            model: Connections,
+            as: 'connection',
+            where: { userId },
+            required: true,
+          },
+        ],
+        raw: true,
+        group: ['Lists.userId'],
+      })
+    ).map((el) => el.userId);
+
+    return union(blockedUsers, blockedFromUsers) || [];
+  }
 
   console.log('blockedUsers ', blockedUsers);
-  console.log('blockedFromUsers ', blockedFromUsers);
 
-  return union(blockedUsers, blockedFromUsers) || [];
+  return blockedUsers || [];
 }
 
 /**
