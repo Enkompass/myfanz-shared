@@ -380,7 +380,7 @@ async function fetchNotAllowedUsers(
     })
   ).map((el) => el.userId);
 
-  if (excludeBlockedReversal) {
+  if (!excludeBlockedReversal) {
     const blockedFromUsers = (
       await Lists.findAll({
         attributes: ['Lists.userId'],
