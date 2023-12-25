@@ -34,9 +34,9 @@ module.exports.makePayment = async function (
       },
     });
 
-    console.log('response ', response?.data);
+    console.log('response ', response);
 
-    return response?.data;
+    return response;
   } catch (e) {
     console.log('makePayment err => ', e.response.data);
     const errData = {
