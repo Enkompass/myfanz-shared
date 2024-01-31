@@ -6,7 +6,6 @@ async function checkUserHasActiveStory(userId, cookie) {
     method: 'get',
   });
 
-  console.log('checkUserHasActiveStory res ', res);
   return Boolean(res?.data);
 }
 
@@ -17,7 +16,6 @@ async function checkUsersHasActiveStory(users, cookie) {
     data: { users },
   });
 
-  console.log('checkUserHasActiveStory res ', res);
   return res?.data;
 }
 

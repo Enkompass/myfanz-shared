@@ -96,8 +96,6 @@ module.exports = (sequelize, DataTypes) => {
 
   User.addHook('afterFind', async (result, options) => {
     const { ignoreHook, getAvatar, getCover, getSmallCover } = options;
-    console.log('hook after find ', ignoreHook);
-    console.log('hook after find getAvatar ', getAvatar);
     if (ignoreHook) return result;
     if (Array.isArray(result)) {
       return result.map((el) => {

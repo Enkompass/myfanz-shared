@@ -2954,10 +2954,10 @@ ms@^2.1.1:
   resolved "https://registry.yarnpkg.com/ms/-/ms-2.1.3.tgz#574c8138ce1d2b5861f0b44579dbadd60c6615b2"
   integrity sha512-6FlzubTLZG3J2a/NVCAleEhjzq5oxgHyaCU9yYXvcLsvoVaHJq/s5xXI6/XXP6tz7R9xAOtHnSO/tXtF3WRTlA==
 
-myfanz-media@^1.0.115:
-  version "1.0.115"
-  resolved "https://registry.yarnpkg.com/myfanz-media/-/myfanz-media-1.0.115.tgz#fa3bddadfa55d6a101a995dd856bfa0bc2b88717"
-  integrity sha512-w5+/xscWf7s/O7wmmObVxrklq3tf3/fWFf1cHEU1vrNH1uAXWmXOKdKGej1M8pti/SnLwmlgRITx8tiaaiYzrw==
+myfanz-media@^1.0.120:
+  version "1.0.120"
+  resolved "https://registry.yarnpkg.com/myfanz-media/-/myfanz-media-1.0.120.tgz#1428ac87d5f8e480dde8042bd3bda6d771cda669"
+  integrity sha512-gHVhckMJ+ajwtyx8IHP1hsAHILJ8lqTypndq8LbCnpsdfJUluc2l6Pu4xkrInU36TTVccvTeznlT1KlK715eMQ==
   dependencies:
     "@aws-sdk/client-s3" "^3.215.0"
     "@aws-sdk/s3-request-presigner" "^3.276.0"
@@ -2970,7 +2970,6 @@ myfanz-media@^1.0.115:
     fluent-ffmpeg "^2.1.2"
     sharp "^0.32.4"
     valid-url "^1.0.9"
-    wavefile "^11.0.0"
 
 nan@^2.17.0:
   version "2.18.0"
@@ -3835,11 +3834,6 @@ validator@^13.9.0:
   version "13.9.0"
   resolved "https://registry.yarnpkg.com/validator/-/validator-13.9.0.tgz#33e7b85b604f3bbce9bb1a05d5c3e22e1c2ff855"
   integrity sha512-B+dGG8U3fdtM0/aNK4/X8CXq/EcxU2WPrPEkJGslb47qyHsxmbggTWK0yEA4qnYVNF+nxNlN88o14hIcPmSIEA==
-
-wavefile@^11.0.0:
-  version "11.0.0"
-  resolved "https://registry.yarnpkg.com/wavefile/-/wavefile-11.0.0.tgz#9302165874327ff63a704d00b154c753eaa1b8e7"
-  integrity sha512-/OBiAALgWU24IG7sC84cDO/KfFuvajWc5Uec0oV2zrpOOZZDgGdOwHwgEzOrwh8jkubBk7PtZfQBIcI1OaE5Ng==
 
 webidl-conversions@^3.0.0:
   version "3.0.1"

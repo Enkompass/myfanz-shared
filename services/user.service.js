@@ -216,7 +216,6 @@ async function makeReport(
         itemUrl,
       },
     });
-    console.log('response ', response.data);
 
     return response.data;
   } catch (e) {
@@ -508,7 +507,6 @@ async function fetchUsersData(
         validateForUser,
         users
       );
-      console.log('activeSubscriptions ', activeSubscriptions);
     }
 
     if (getOptions.listsIncludedUser) {

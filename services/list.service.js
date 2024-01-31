@@ -134,8 +134,6 @@ async function fetchUsersInConnection(userId, slug, active = true) {
   list = list.dataValues;
   let connections = list.connections;
 
-  console.log('connections ', connections);
-
   list.users = [];
 
   for (let j = 0; j < connections.length; j++) {
@@ -241,8 +239,6 @@ async function getUsersSubscriptionsDetails(userId, refUserId) {
   const activeSubscription =
     (await fetchActiveSubscription(userId, refUserId)) || {};
 
-  console.log('activeSubscription ', activeSubscription);
-
   return {
     subscribed: !!activeSubscription.id,
     currentSubscriptionPrice:
@@ -265,10 +261,6 @@ async function getUserSubscriptionPlanes(userId) {
   });
 
   const subscriptionBundles = await fetchUserSubscriptionBundles(userId);
-
-  console.log('subscriptionBundles ', subscriptionBundles);
-  console.log('settings ', settings);
-  // console.log('subscriptions ', subscriptions);
 
   if (!settings) return {};
 
@@ -401,8 +393,6 @@ async function fetchNotAllowedUsers(
 
     return union(blockedUsers, blockedFromUsers) || [];
   }
-
-  console.log('blockedUsers ', blockedUsers);
 
   return blockedUsers || [];
 }
