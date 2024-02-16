@@ -21,7 +21,20 @@ async function checkUsersHasActiveStory(users, cookie) {
   return res?.data;
 }
 
+
+async function fetchUserPosts(data, cookie) {
+  const res = await makeAuthorizedRequest(cookie, {
+    url: `/creator-srv/username/:${data.username}`,
+    method: 'GET',
+    data: data,
+  });
+
+  console.log('checkUserHasActiveStory res ', res);
+  return res?.data;
+}
+
 module.exports = {
   checkUserHasActiveStory,
+  fetchUserPosts,
   checkUsersHasActiveStory,
 };
