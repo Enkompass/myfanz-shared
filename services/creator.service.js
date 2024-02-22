@@ -19,7 +19,17 @@ async function checkUsersHasActiveStory(users, cookie) {
   return res?.data;
 }
 
+async function fetchStoryById(storyId, cookie) {
+  const res = await makeAuthorizedRequest(cookie, {
+    url: `/creator-srv/story/${storyId}/by-id`,
+    method: 'GET',
+  });
+
+  return res?.data;
+}
+
 module.exports = {
   checkUserHasActiveStory,
   checkUsersHasActiveStory,
+  fetchStoryById,
 };

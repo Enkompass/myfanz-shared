@@ -257,6 +257,29 @@ function getProfilePhotoLink(photo, size = '') {
   }
 }
 
+/**
+ * Calculate datetime by timezone offset
+ * @param date {Date} - date need to calculate
+ * @param offsetInMinutes {number} - timezone offset in minutes
+ * @returns {Date}
+ */
+function getDateWithOffset(date, offsetInMinutes) {
+  const now = new Date(date);
+
+  return new Date(now.getTime() + offsetInMinutes * 60000); // Adjust for offset in milliseconds;
+}
+
+/**
+ * Return true if passed array has duplications, otherwise false
+ * @param arr - Array need to check
+ * @returns {boolean}
+ */
+function hasDuplicates(arr) {
+  const withoutDuplicates = new Set(arr);
+
+  return arr.length !== withoutDuplicates.size;
+}
+
 module.exports = {
   getRoleId,
   getRoleFromId,
@@ -271,4 +294,6 @@ module.exports = {
   generateHash,
   isValidUrl,
   getProfilePhotoLink,
+  getDateWithOffset,
+  hasDuplicates,
 };
