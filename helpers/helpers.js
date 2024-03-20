@@ -8,11 +8,12 @@ const userRoles = [
   { id: 2, role: 'member' },
   { id: 3, role: 'creator' },
   { id: 4, role: 'admin' },
+  { id: 5, role: 'paidCreator' },
 ];
 
 /**
  * Get role id by role name
- * @param role {'user' | 'member' | 'creator' | 'admin' } - role name
+ * @param role {'user' | 'member' | 'creator' | 'admin' | 'paidCreator' } - role name
  * @returns {number}
  */
 function getRoleId(role) {
@@ -22,10 +23,21 @@ function getRoleId(role) {
 /**
  * Get role by role id
  * @param roleId {number } - role id
- * @returns {'user' | 'member' | 'creator' | 'admin'}
+ * @returns {'user' | 'member' | 'creator' | 'admin' | 'paidCreator'}
  */
 function getRoleFromId(roleId) {
   return userRoles.find((el) => el.id === roleId)?.role;
+}
+
+/**
+ * Check is passed role id is creator
+ * @param roleId {number } - role id
+ * @returns {boolean}
+ */
+function checkIsCreator(roleId) {
+  return ['creator', 'paidCreator'].includes(
+    userRoles.find((el) => el.id === roleId)?.role
+  );
 }
 
 /**
@@ -296,4 +308,5 @@ module.exports = {
   getProfilePhotoLink,
   getDateWithOffset,
   hasDuplicates,
+  checkIsCreator,
 };

@@ -11,6 +11,7 @@ const {
   Lists,
   StripeDetails,
   CardAccounts,
+  CreatorsCouples,
 } = require('../models/index');
 const { Sequelize } = require('sequelize');
 const {
@@ -19,6 +20,7 @@ const {
 } = require('./list.service');
 const { ConflictError } = require('../errors');
 const { checkUsersHasActiveStory } = require('./creator.service');
+const { checkIsCreator, getRoleFromId } = require('../helpers/helpers');
 const { Op } = Sequelize;
 
 /**
@@ -325,7 +327,7 @@ async function addUsersCardAccounts(data) {
  * @param validateForUser {number|null} [validateForUser=null] - Validate for user id
  * @param attributes {Array<'id'|'displayName'|'email'|'username'|'emailVerifiedAt'|'roleId'|'hasCard'|'lastActivity'|'deletedAt'|'active'|'avatar'|'cover'|any>} [attributes=undefined] - list of fields need to get, if not passed get all fields
  * @param photoOptions {{ignoreHooks?: boolean,getAvatar?:boolean,getCover?:boolean,getSmallCover?:boolean}}
- * @param getOptions {{roleName?: boolean,activeSubscription?: boolean,subscriptionPlanes?: boolean,hasStory?:true,listsIncludedUser?:boolean,keepFormatForOneUser?:boolean}}
+ * @param getOptions {{roleName?: boolean,activeSubscription?: boolean,subscriptionPlanes?: boolean,hasStory?:true,listsIncludedUser?:boolean,keepFormatForOneUser?:boolean, getSecondAccount?: boolean}}
  * @param validationOptions {{subscribed?: boolean,blocked?: boolean, blockedReversal?: boolean, restricted?: boolean,restrictedReversal?: boolean,reported?:boolean}}
  * @param cookie {string|undefined} - [cookie=undefined] - Session cookie, required for external requests, for example for get hasStory
  * @returns {Promise<any>}
@@ -548,7 +550,9 @@ async function fetchUsersData(
   });
 
   if (usersData.length) {
-    usersData.forEach(({ dataValues: user }) => {
+    for (let userData of usersData) {
+      const user = userData.dataValues;
+
       if (getOptions.activeSubscription) {
         user.subscribed = false;
 
@@ -582,8 +586,28 @@ async function fetchUsersData(
         user.lists = listsIncludedUser[user.id] || [];
       }
 
+      /** Add creator second account user id if et exists */
+      if (getOptions.getSecondAccount && checkIsCreator(user.roleId)) {
+        const isPaidCreator = getRoleFromId(user.roleId) === 'paidCreator';
+        const creatorsCouple = await CreatorsCouples.findOne({
+          where: isPaidCreator
+            ? { paidUserId: user.id }
+            : { mainUserId: user.id },
+          raw: true,
+        });
+
+        if (creatorsCouple) {
+          if (isPaidCreator) {
+            user.mainUserId = creatorsCouple.mainUserId;
+            user.secondUserId = creatorsCouple.mainUserId;
+          } else {
+            user.secondUserId = creatorsCouple.mainUserId;
+          }
+        }
+      }
+
       result[user.id] = user;
-    });
+    }
 
     if (oneUserId && !getOptions.keepFormatForOneUser) return result[oneUserId];
 
