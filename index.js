@@ -10,6 +10,7 @@ const userService = require('./services/user.service');
 const listService = require('./services/list.service');
 const paymentService = require('./services/payment.service');
 const creatorBundlesService = require('./services/creatorBundles.service');
+const creatorCouplesService = require('./services/creatorCouples.service');
 
 module.exports = {
   ...errors,
@@ -19,6 +20,7 @@ module.exports = {
   ...listService,
   ...paymentService,
   ...creatorBundlesService,
+  ...creatorCouplesService,
   handleCurrentUser,
   checkPermission,
   redisWrapper,
