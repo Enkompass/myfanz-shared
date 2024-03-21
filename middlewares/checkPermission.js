@@ -8,15 +8,14 @@ const { PermissionError } = require('../errors');
  */
 function checkPermission(permission) {
   return async function (req, res, next) {
-    if (!req.user?.permissions || !Array.isArray(req.user.permissions))
-      throw new PermissionError('Permission denied');
+    if (!req.user?.permissions) throw new PermissionError('Permission denied');
 
     if (Array.isArray(permission)) {
       for (let perm of permission) {
-        if (req.user.permissions.includes(perm)) return next();
+        if (req.user.permissions[perm]) return next();
       }
       throw new PermissionError('Permission denied');
-    } else if (!req.user?.permissions?.includes(permission))
+    } else if (!req.user.permissions[permission])
       throw new PermissionError('Permission denied');
 
     return next();
