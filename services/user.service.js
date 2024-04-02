@@ -327,8 +327,8 @@ async function addUsersCardAccounts(data) {
  * @param validateForUser {number|null} [validateForUser=null] - Validate for user id
  * @param attributes {Array<'id'|'displayName'|'email'|'username'|'emailVerifiedAt'|'roleId'|'hasCard'|'lastActivity'|'deletedAt'|'active'|'avatar'|'cover'|any>} [attributes=undefined] - list of fields need to get, if not passed get all fields
  * @param photoOptions {{ignoreHooks?: boolean,getAvatar?:boolean,getCover?:boolean,getSmallCover?:boolean}}
- * @param getOptions {{roleName?: boolean,activeSubscription?: boolean,subscriptionPlanes?: boolean,hasStory?:true,listsIncludedUser?:boolean,keepFormatForOneUser?:boolean, getSecondAccount?: boolean}}
- * @param validationOptions {{subscribed?: boolean,blocked?: boolean, blockedReversal?: boolean, restricted?: boolean,restrictedReversal?: boolean,reported?:boolean}}
+ * @param getOptions {{roleName?: boolean,activeSubscription?: boolean,subscriptionPlanes?: boolean,hasStory?:true,listsIncludedUser?:boolean,keepFormatForOneUser?:boolean, getSecondAccount?: boolean,getDataInArray?:boolean,getFriendsList?:boolean}}
+ * @param validationOptions {{subscribed?: boolean,blocked?: boolean, blockedReversal?: boolean, restricted?: boolean,restrictedReversal?: boolean,reported?:boolean,isFriend?:boolean}}
  * @param cookie {string|undefined} - [cookie=undefined] - Session cookie, required for external requests, for example for get hasStory
  * @returns {Promise<any>}
  */
@@ -341,7 +341,7 @@ async function fetchUsersData(
   validationOptions = {},
   cookie = undefined
 ) {
-  const result = {};
+  const result = getOptions.getDataInArray ? [] : {};
   if (!photoOptions) photoOptions = {};
   let oneUserId;
   if (!Array.isArray(users)) {
@@ -504,6 +504,18 @@ async function fetchUsersData(
       ]);
     }
 
+    if (validationOptions.isFriend) {
+      attributes.push([
+        sequelize.literal(`(
+                    SELECT fl.id
+                    FROM "FriendLists" AS fl                    
+                    WHERE fl.status = 'accepted' AND ((fl."userOneId" = "User".id AND fl."userTwoId" = ${validateForUser}) 
+                    OR (fl."userOneId" =  ${validateForUser} AND fl."userTwoId" = "User".id))
+                ) IS NOT NULL`),
+        'isFriend',
+      ]);
+    }
+
     if (getOptions.activeSubscription) {
       activeSubscriptions = await fetchActiveSubscriptions(
         validateForUser,
@@ -550,8 +562,8 @@ async function fetchUsersData(
   });
 
   if (usersData.length) {
-    for (let userData of usersData) {
-      const user = userData.dataValues;
+    for (let i = 0; i < usersData.length; i++) {
+      const user = usersData[i].dataValues;
 
       if (getOptions.activeSubscription) {
         user.subscribed = false;
@@ -606,10 +618,15 @@ async function fetchUsersData(
         }
       }
 
-      result[user.id] = user;
+      if (getOptions.getDataInArray) {
+        result[i] = user;
+      } else {
+        result[user.id] = user;
+      }
     }
 
-    if (oneUserId && !getOptions.keepFormatForOneUser) return result[oneUserId];
+    if (oneUserId && !getOptions.keepFormatForOneUser)
+      return getOptions.getDataInArray ? result[0] : result[oneUserId];
 
     return result;
   }
