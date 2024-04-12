@@ -12,15 +12,18 @@ const {
   StripeDetails,
   CardAccounts,
   CreatorsCouples,
+  Promotions,
 } = require('../models/index');
 const { Sequelize } = require('sequelize');
 const {
   fetchUsersConnectionsDetails,
   fetchActiveSubscriptions,
+  validatePromotions,
 } = require('./list.service');
 const { ConflictError } = require('../errors');
 const { checkUsersHasActiveStory } = require('./creator.service');
 const { checkIsCreator, getRoleFromId } = require('../helpers/helpers');
+const { eachOfLimit } = require('async');
 const { Op } = Sequelize;
 
 /**
@@ -417,6 +420,12 @@ async function fetchUsersData(
         model: SubscriptionBundles,
         as: 'userSubscriptionBundles',
         raw: true,
+      },
+      {
+        // attributes: ['id', 'price', 'discount', 'duration'],
+        model: Promotions,
+        as: 'userPromotions',
+        raw: true,
       }
     );
 
@@ -562,73 +571,154 @@ async function fetchUsersData(
   });
 
   if (usersData.length) {
-    for (let i = 0; i < usersData.length; i++) {
-      const user = usersData[i].dataValues;
+    return new Promise((resolve, reject) => {
+      eachOfLimit(
+        usersData,
+        10,
+        async ({ dataValues: user }, i) => {
+          if (getOptions.activeSubscription) {
+            user.subscribed = false;
 
-      if (getOptions.activeSubscription) {
-        user.subscribed = false;
+            const activeSubscription = activeSubscriptions.find(
+              (el) => el.userId === user.id
+            );
 
-        const activeSubscription = activeSubscriptions.find(
-          (el) => el.userId === user.id
-        );
-
-        if (activeSubscription) {
-          user.subscribed = true;
-          user.currentSubscriptionPrice =
-            activeSubscription['subscriptionDetails.price'];
-          user.subscribedAt = new Date(activeSubscription['createdAt']);
-          user.subscriptionExpireAt = activeSubscription['expireAt'];
-        }
-      }
-
-      if (user.userSubscriptionBundles) {
-        user.userSubscriptionBundles = user.userSubscriptionBundles
-          .map((el) => el.dataValues)
-          .sort((a, b) => a.duration - b.duration);
-      }
-      delete user.UserSettings;
-      delete user.creatorSettings;
-
-      if (getOptions.hasStory) {
-        user.hasStory = Boolean(activeStories?.[user.id]?.hasStory);
-        user.hasNewStory = Boolean(activeStories?.[user.id]?.hasNewStory);
-      }
-
-      if (getOptions.listsIncludedUser) {
-        user.lists = listsIncludedUser[user.id] || [];
-      }
-
-      /** Add creator second account user id if et exists */
-      if (getOptions.getSecondAccount && checkIsCreator(user.roleId)) {
-        const isPaidCreator = getRoleFromId(user.roleId) === 'paidCreator';
-        const creatorsCouple = await CreatorsCouples.findOne({
-          where: isPaidCreator
-            ? { paidUserId: user.id }
-            : { mainUserId: user.id },
-          raw: true,
-        });
-
-        if (creatorsCouple) {
-          if (isPaidCreator) {
-            user.mainUserId = creatorsCouple.mainUserId;
-            user.secondUserId = creatorsCouple.mainUserId;
-          } else {
-            user.secondUserId = creatorsCouple.mainUserId;
+            if (activeSubscription) {
+              user.subscribed = true;
+              user.currentSubscriptionPrice =
+                activeSubscription['subscriptionDetails.price'];
+              user.subscribedAt = new Date(activeSubscription['createdAt']);
+              user.subscriptionExpireAt = activeSubscription['expireAt'];
+            }
           }
+
+          if (user.userSubscriptionBundles) {
+            user.userSubscriptionBundles = user.userSubscriptionBundles
+              .map((el) => el.dataValues)
+              .sort((a, b) => a.duration - b.duration);
+          }
+          if (user.userPromotions) {
+            user.userPromotions = await validatePromotions(
+              user.userPromotions,
+              validateForUser
+            );
+          }
+          delete user.UserSettings;
+          delete user.creatorSettings;
+
+          if (getOptions.hasStory) {
+            user.hasStory = Boolean(activeStories?.[user.id]?.hasStory);
+            user.hasNewStory = Boolean(activeStories?.[user.id]?.hasNewStory);
+          }
+
+          if (getOptions.listsIncludedUser) {
+            user.lists = listsIncludedUser[user.id] || [];
+          }
+
+          /** Add creator second account user id if et exists */
+          if (getOptions.getSecondAccount && checkIsCreator(user.roleId)) {
+            const isPaidCreator = getRoleFromId(user.roleId) === 'paidCreator';
+            const creatorsCouple = await CreatorsCouples.findOne({
+              where: isPaidCreator
+                ? { paidUserId: user.id }
+                : { mainUserId: user.id },
+              raw: true,
+            });
+
+            if (creatorsCouple) {
+              if (isPaidCreator) {
+                user.mainUserId = creatorsCouple.mainUserId;
+                user.secondUserId = creatorsCouple.mainUserId;
+              } else {
+                user.secondUserId = creatorsCouple.mainUserId;
+              }
+            }
+          }
+
+          if (getOptions.getDataInArray) {
+            result[i] = user;
+          } else {
+            result[user.id] = user;
+          }
+        },
+
+        (err) => {
+          if (err) reject(err);
+
+          if (oneUserId && !getOptions.keepFormatForOneUser)
+            resolve(getOptions.getDataInArray ? result[0] : result[oneUserId]);
+          else resolve(result);
         }
-      }
+      );
+    });
 
-      if (getOptions.getDataInArray) {
-        result[i] = user;
-      } else {
-        result[user.id] = user;
-      }
-    }
-
-    if (oneUserId && !getOptions.keepFormatForOneUser)
-      return getOptions.getDataInArray ? result[0] : result[oneUserId];
-
-    return result;
+    // for (let i = 0; i < usersData.length; i++) {
+    //   const user = usersData[i].dataValues;
+    //
+    //   if (getOptions.activeSubscription) {
+    //     user.subscribed = false;
+    //
+    //     const activeSubscription = activeSubscriptions.find(
+    //       (el) => el.userId === user.id
+    //     );
+    //
+    //     if (activeSubscription) {
+    //       user.subscribed = true;
+    //       user.currentSubscriptionPrice =
+    //         activeSubscription['subscriptionDetails.price'];
+    //       user.subscribedAt = new Date(activeSubscription['createdAt']);
+    //       user.subscriptionExpireAt = activeSubscription['expireAt'];
+    //     }
+    //   }
+    //
+    //   if (user.userSubscriptionBundles) {
+    //     user.userSubscriptionBundles = user.userSubscriptionBundles
+    //       .map((el) => el.dataValues)
+    //       .sort((a, b) => a.duration - b.duration);
+    //   }
+    //   delete user.UserSettings;
+    //   delete user.creatorSettings;
+    //
+    //   if (getOptions.hasStory) {
+    //     user.hasStory = Boolean(activeStories?.[user.id]?.hasStory);
+    //     user.hasNewStory = Boolean(activeStories?.[user.id]?.hasNewStory);
+    //   }
+    //
+    //   if (getOptions.listsIncludedUser) {
+    //     user.lists = listsIncludedUser[user.id] || [];
+    //   }
+    //
+    //   /** Add creator second account user id if et exists */
+    //   if (getOptions.getSecondAccount && checkIsCreator(user.roleId)) {
+    //     const isPaidCreator = getRoleFromId(user.roleId) === 'paidCreator';
+    //     const creatorsCouple = await CreatorsCouples.findOne({
+    //       where: isPaidCreator
+    //         ? { paidUserId: user.id }
+    //         : { mainUserId: user.id },
+    //       raw: true,
+    //     });
+    //
+    //     if (creatorsCouple) {
+    //       if (isPaidCreator) {
+    //         user.mainUserId = creatorsCouple.mainUserId;
+    //         user.secondUserId = creatorsCouple.mainUserId;
+    //       } else {
+    //         user.secondUserId = creatorsCouple.mainUserId;
+    //       }
+    //     }
+    //   }
+    //
+    //   if (getOptions.getDataInArray) {
+    //     result[i] = user;
+    //   } else {
+    //     result[user.id] = user;
+    //   }
+    // }
+    //
+    // if (oneUserId && !getOptions.keepFormatForOneUser)
+    //   return getOptions.getDataInArray ? result[0] : result[oneUserId];
+    //
+    // return result;
   }
   return null;
 }

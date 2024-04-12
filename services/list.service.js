@@ -6,6 +6,7 @@ const {
   Connections,
   SubscriptionsDetails,
   CreatorSettings,
+  Promotions,
 } = require('../models/index');
 const { Sequelize } = require('sequelize');
 const { NotFoundError, ConflictError } = require('../errors');
@@ -180,6 +181,42 @@ async function fetchActiveSubscription(userId, toUserId) {
 }
 
 /**
+ * Check is user expired follower
+ * @param userId {number} - Main user id
+ * @param validateForUser {number} - User id need to check
+ * @returns {Promise<boolean>}
+ */
+async function checkIsExpiredFollower(userId, validateForUser) {
+  // const listFollowing = await fetchUserListByType(userId, 'following', true);
+  const listFollowers = await fetchUserListByType(userId, 'followers', true);
+
+  return Boolean(
+    await User.scope('withId').findOne({
+      attributes: ['id'],
+      where: {
+        id: {
+          [Op.and]: [
+            { [Op.eq]: validateForUser },
+            // { [Op.notIn]: notAllowedUsers },
+            {
+              [Op.notIn]: Sequelize.literal(
+                `(SELECT "userId" FROM "Connections" WHERE "listId" = ${listFollowers.id} AND "expiredAt" IS NULL)`
+              ),
+            },
+            {
+              [Op.in]: Sequelize.literal(
+                `(SELECT "userId" FROM "Connections" WHERE "listId" = ${listFollowers.id} AND "expiredAt" IS NOT NULL)`
+              ),
+            },
+          ],
+        },
+      },
+      raw: true,
+    })
+  );
+}
+
+/**
  * Fetch user active subscription to users
  * @param userId {number} - user id subscriber
  * @param toUsers {Array<number>} - user ides to subscribe
@@ -252,9 +289,10 @@ async function getUsersSubscriptionsDetails(userId, refUserId) {
 /**
  * Get user subscription planes
  * @param userId {number} - user id
+ * @param validateForUser {number | undefined} - Validate user id
  * @returns {Promise<any>}
  */
-async function getUserSubscriptionPlanes(userId) {
+async function getUserSubscriptionPlanes(userId, validateForUser) {
   const settings = await CreatorSettings.findOne({
     where: { userId: Number(userId) },
     raw: true,
@@ -270,7 +308,74 @@ async function getUserSubscriptionPlanes(userId) {
     subscriptionBundles: subscriptionBundles?.map((bundle) =>
       initSubscriptionBundle(bundle, settings.subscriptionPrice)
     ),
+    promotions: await fetchUserPromotions(userId, validateForUser),
   };
+}
+
+/**
+ * Fetch user promotions
+ * @param userId {number} - User id
+ * @param validateForUser {number} - User id for validate
+ * @returns {Promise<Model[]>}
+ */
+async function fetchUserPromotions(userId, validateForUser) {
+  const filter = {
+    userId,
+    finishAt: {
+      [Op.gte]: new Date(),
+    },
+  };
+
+  return validatePromotions(
+    await Promotions.findAll({ where: filter, raw: true }),
+    validateForUser
+  );
+}
+
+/**
+ * Validate passed promotion for user
+ * @param promotions {Array<Object>} - Promotions list
+ * @param validateForUser {number} - User id for validate
+ * @returns {Promise<{length}|*>}
+ */
+async function validatePromotions(promotions, validateForUser) {
+  if (promotions?.length && validateForUser) {
+    for (const promotion of promotions) {
+      promotion.canClaim = !(
+        !validateForUser ||
+        validateForUser === promotion.userId ||
+        (promotion.subscribeCount &&
+          promotion.claimsCount >= promotion.subscribeCount)
+      );
+
+      if (promotion.canClaim) {
+        const subscribed = await checkActiveSubscription(
+          validateForUser,
+          promotion.userId
+        );
+
+        if (subscribed) {
+          promotion.canClaim = false;
+          continue;
+        }
+
+        if (promotion.group === 'all') continue;
+
+        const isExpiredFollower = await checkIsExpiredFollower(
+          promotion.userId,
+          validateForUser
+        );
+
+        if (promotion.group === 'expired' && !isExpiredFollower) {
+          promotion.canClaim = false;
+        } else if (isExpiredFollower) {
+          promotion.canClaim = false;
+        }
+      }
+    }
+  }
+
+  return promotions;
 }
 
 /**
@@ -469,4 +574,5 @@ module.exports = {
   fetchDataFromModelByFilter,
   fetchListsAllUsers,
   checkUsersConnectionByLists,
+  checkIsExpiredFollower,
 };

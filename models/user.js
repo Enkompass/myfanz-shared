@@ -35,6 +35,10 @@ module.exports = (sequelize, DataTypes) => {
         as: 'userSubscriptionBundles',
         foreignKey: 'userId',
       });
+      this.hasMany(models.Promotions, {
+        as: 'userPromotions',
+        foreignKey: 'userId',
+      });
     }
     async getRole(roleId) {
       const dbRole = await sequelize.models.Role.findOne({
