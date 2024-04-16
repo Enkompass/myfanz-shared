@@ -333,49 +333,98 @@ async function fetchUserPromotions(userId, validateForUser) {
 }
 
 /**
- * Validate passed promotion for user
+ * Validate passed promotions for user
  * @param promotions {Array<Object>} - Promotions list
  * @param validateForUser {number} - User id for validate
+ * @param error {boolean} [error = false] - If true and cannot claim to throw an error
  * @returns {Promise<{length}|*>}
  */
-async function validatePromotions(promotions, validateForUser) {
+async function validatePromotions(promotions, validateForUser, error = false) {
   if (promotions?.length && validateForUser) {
-    for (const promotion of promotions) {
-      promotion.canClaim = !(
-        !validateForUser ||
-        validateForUser === promotion.userId ||
-        (promotion.subscribeCount &&
-          promotion.claimsCount >= promotion.subscribeCount)
+    for (let index = 0; index < promotions.length; index++) {
+      promotions[index] = await validateOnePromotion(
+        promotions[index],
+        validateForUser,
+        error
       );
-
-      if (promotion.canClaim) {
-        const subscribed = await checkActiveSubscription(
-          validateForUser,
-          promotion.userId
-        );
-
-        if (subscribed) {
-          promotion.canClaim = false;
-          continue;
-        }
-
-        if (promotion.group === 'all') continue;
-
-        const isExpiredFollower = await checkIsExpiredFollower(
-          promotion.userId,
-          validateForUser
-        );
-
-        if (promotion.group === 'expired' && !isExpiredFollower) {
-          promotion.canClaim = false;
-        } else if (isExpiredFollower) {
-          promotion.canClaim = false;
-        }
-      }
     }
   }
 
   return promotions;
+}
+
+/**
+ * Validate passed promotion for user
+ * @param promotion {Object} - Promotions list
+ * @param validateForUser {number} - User id for validate
+ * @param error {boolean} [error = false] - If true and cannot claim to throw an error
+ * @returns {Promise<{length}|*>}
+ */
+async function validateOnePromotion(promotion, validateForUser, error = false) {
+  promotion.canClaim = true;
+
+  if (new Date(promotion.finishAt) < new Date()) {
+    if (error) throw new ConflictError('Promotion is not active');
+    else {
+      promotion.canClaim = false;
+      return promotion;
+    }
+  }
+
+  if (
+    promotion.subscribeCount &&
+    promotion.claimsCount >= promotion.subscribeCount
+  ) {
+    if (error) throw new ConflictError('Promotion subscribers limit reached');
+    else {
+      promotion.canClaim = false;
+      return promotion;
+    }
+  }
+
+  if (!validateForUser || validateForUser === promotion.userId) {
+    if (error) throw new ConflictError('Own promotion');
+    else {
+      promotion.canClaim = false;
+      return promotion;
+    }
+  }
+
+  const subscribed = await checkActiveSubscription(
+    validateForUser,
+    promotion.userId
+  );
+
+  if (subscribed) {
+    if (error) throw new ConflictError('Already subscribed limit reached');
+    else {
+      promotion.canClaim = false;
+      return promotion;
+    }
+  }
+
+  if (promotion.group === 'all') return promotion;
+
+  const isExpiredFollower = await checkIsExpiredFollower(
+    promotion.userId,
+    validateForUser
+  );
+
+  if (promotion.group === 'expired' && !isExpiredFollower) {
+    if (error) throw new ConflictError('Only for expired users');
+    else {
+      promotion.canClaim = false;
+      return promotion;
+    }
+  } else if (isExpiredFollower) {
+    if (error) throw new ConflictError('Only for new subscribers');
+    else {
+      promotion.canClaim = false;
+      return promotion;
+    }
+  }
+
+  return promotion;
 }
 
 /**
@@ -575,4 +624,5 @@ module.exports = {
   fetchListsAllUsers,
   checkUsersConnectionByLists,
   checkIsExpiredFollower,
+  validatePromotions,
 };
