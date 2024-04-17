@@ -321,6 +321,7 @@ async function getUserSubscriptionPlanes(userId, validateForUser) {
 async function fetchUserPromotions(userId, validateForUser) {
   const filter = {
     userId,
+    link: false,
     finishAt: {
       [Op.gte]: new Date(),
     },

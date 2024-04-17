@@ -22,6 +22,7 @@ module.exports = (sequelize, DataTypes) => {
       discount: DataTypes.INTEGER,
       claimsCount: DataTypes.INTEGER,
       message: DataTypes.STRING,
+      link: DataTypes.BOOLEAN,
     },
     {
       sequelize,

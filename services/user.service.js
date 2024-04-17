@@ -425,6 +425,7 @@ async function fetchUsersData(
         // attributes: ['id', 'price', 'discount', 'duration'],
         model: Promotions,
         as: 'userPromotions',
+        where: { link: false },
         raw: true,
       }
     );
