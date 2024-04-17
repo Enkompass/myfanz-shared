@@ -426,6 +426,7 @@ async function fetchUsersData(
         model: Promotions,
         as: 'userPromotions',
         where: { link: false },
+        required: false,
         raw: true,
       }
     );
