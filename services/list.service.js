@@ -364,7 +364,7 @@ async function validatePromotions(promotions, validateForUser, error = false) {
 async function validateOnePromotion(promotion, validateForUser, error = false) {
   promotion.canClaim = true;
 
-  if (new Date(promotion.finishAt) < new Date()) {
+  if (promotion.finishAt && new Date(promotion.finishAt) < new Date()) {
     if (error) throw new ConflictError('Promotion is not active');
     else {
       promotion.canClaim = false;

@@ -27,6 +27,7 @@ module.exports = (sequelize, DataTypes) => {
       autoRenewal: DataTypes.BOOLEAN,
       checkRenewal: DataTypes.BOOLEAN,
       type: DataTypes.STRING,
+      planId: DataTypes.INTEGER,
     },
     {
       sequelize,
