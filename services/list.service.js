@@ -217,6 +217,40 @@ async function checkIsExpiredFollower(userId, validateForUser) {
 }
 
 /**
+ * Check if passed trial promotion already used for user
+ * @param userId {number} - Main user id
+ * @param validateForUser {number} - User id need to check
+ * @param promotionId {number} - Trial promotion id
+ * @returns {Promise<boolean>}
+ */
+async function checkIsUsedTrialPromotion(userId, validateForUser, promotionId) {
+  return Boolean(
+    await User.scope('withId').findOne({
+      attributes: ['id'],
+      where: {
+        id: {
+          [Op.and]: [
+            { [Op.eq]: validateForUser },
+            {
+              [Op.in]: Sequelize.literal(
+                `(SELECT c."userId" 
+                FROM "Lists" l
+                INNER JOIN "Connections" c ON c."listId" - l.id
+                INNER JOIN "SubscriptionsDetails" s on s."connectionId" = c.id 
+                WHERE l."userId" = ${userId} AND l."type" = 'followers' AND s.type = 'trial' AND s."planId" = ${promotionId}
+                )
+                `
+              ),
+            },
+          ],
+        },
+      },
+      raw: true,
+    })
+  );
+}
+
+/**
  * Fetch user active subscription to users
  * @param userId {number} - user id subscriber
  * @param toUsers {Array<number>} - user ides to subscribe
@@ -316,16 +350,26 @@ async function getUserSubscriptionPlanes(userId, validateForUser) {
  * Fetch user promotions
  * @param userId {number} - User id
  * @param validateForUser {number} - User id for validate
+ * @param expectFinished {boolean} [expectFinished=true] - If passed true get only not finished promotions, otherwise get all promotions
+ * @param link {boolean} [link=false] - If passed true get only free trial links, otherwise get all without trial links
  * @returns {Promise<Model[]>}
  */
-async function fetchUserPromotions(userId, validateForUser) {
+async function fetchUserPromotions(
+  userId,
+  validateForUser,
+  expectFinished = true,
+  link = false
+) {
   const filter = {
     userId,
-    link: false,
-    finishAt: {
-      [Op.gte]: new Date(),
-    },
+    link,
   };
+
+  if (expectFinished) {
+    filter.finishAt = {
+      [Op.or]: [{ [Op.is]: null }, { [Op.gt]: new Date() }],
+    };
+  }
 
   return validatePromotions(
     await Promotions.findAll({ where: filter, raw: true }),
@@ -391,13 +435,31 @@ async function validateOnePromotion(promotion, validateForUser, error = false) {
     }
   }
 
+  if (
+    promotion.type === 'trial' &&
+    (await checkIsUsedTrialPromotion(
+      promotion.userId,
+      validateForUser,
+      promotion.id
+    ))
+  ) {
+    if (error)
+      throw new ConflictError(
+        "This free trial offer doesn't exist anymore because it was claimed"
+      );
+    else {
+      promotion.canClaim = false;
+      return promotion;
+    }
+  }
+
   const subscribed = await checkActiveSubscription(
     validateForUser,
     promotion.userId
   );
 
   if (subscribed) {
-    if (error) throw new ConflictError('Already subscribed limit reached');
+    if (error) throw new ConflictError('Already subscribed to this user');
     else {
       promotion.canClaim = false;
       return promotion;
@@ -626,4 +688,7 @@ module.exports = {
   checkUsersConnectionByLists,
   checkIsExpiredFollower,
   validatePromotions,
+  validateOnePromotion,
+  checkIsUsedTrialPromotion,
+  fetchUserPromotions,
 };
