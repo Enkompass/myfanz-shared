@@ -479,7 +479,7 @@ async function validateOnePromotion(promotion, validateForUser, error = false) {
       promotion.canClaim = false;
       return promotion;
     }
-  } else if (isExpiredFollower) {
+  } else if (promotion.group === 'new' && isExpiredFollower) {
     if (error) throw new ConflictError('Only for new subscribers');
     else {
       promotion.canClaim = false;
