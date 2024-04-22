@@ -591,6 +591,10 @@ async function fetchUsersData(
                 activeSubscription['subscriptionDetails.price'];
               user.subscribedAt = new Date(activeSubscription['createdAt']);
               user.subscriptionExpireAt = activeSubscription['expireAt'];
+              user.checkRenewal =
+                activeSubscription['subscriptionDetails.checkRenewal'] || null;
+              user.autoRenewal =
+                activeSubscription['subscriptionDetails.autoRenewal'] || null;
             }
           }
 
@@ -599,9 +603,9 @@ async function fetchUsersData(
               .map((el) => el.dataValues)
               .sort((a, b) => a.duration - b.duration);
           }
-          if (user.userPromotions) {
+          if (user.userPromotions?.length) {
             user.userPromotions = await validatePromotions(
-              user.userPromotions,
+              user.userPromotions.map((el) => el.dataValues),
               validateForUser
             );
           }
