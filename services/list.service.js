@@ -235,7 +235,7 @@ async function checkIsUsedTrialPromotion(userId, validateForUser, promotionId) {
               [Op.in]: Sequelize.literal(
                 `(SELECT c."userId" 
                 FROM "Lists" l
-                INNER JOIN "Connections" c ON c."listId" - l.id
+                INNER JOIN "Connections" c ON c."listId" = l.id
                 INNER JOIN "SubscriptionsDetails" s on s."connectionId" = c.id 
                 WHERE l."userId" = ${userId} AND l."type" = 'followers' AND s.type = 'trial' AND s."planId" = ${promotionId}
                 )
