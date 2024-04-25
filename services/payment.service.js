@@ -9,6 +9,7 @@ const { makeAuthorizedRequest } = require('../helpers/helpers');
  * @param type {'tip'|'post_tip'|'message_tip'|'stream_tip'|'story_tip'|'unlock_post'|'message_unlock'|'subscribe'|'unlock_stream'} - payment type
  * @param message {string} - payment description
  * @param cardId {number} - card id
+ * @param isSubscriptionRenewal {boolean} [isSubscriptionRenewal=false] - Flag is payment for subscription renewal
  * @returns {Promise<(*&{success: boolean})|*|{success: boolean, message: string}>}
  */
 module.exports.makePayment = async function (
@@ -18,7 +19,8 @@ module.exports.makePayment = async function (
   itemId,
   type,
   message,
-  cardId
+  cardId,
+  isSubscriptionRenewal = false
 ) {
   try {
     return await makeAuthorizedRequest(cookie, {
@@ -31,6 +33,7 @@ module.exports.makePayment = async function (
         type,
         message,
         cardId,
+        isSubscriptionRenewal,
       },
     });
   } catch (e) {
