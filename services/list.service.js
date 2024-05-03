@@ -349,18 +349,20 @@ async function getUserSubscriptionPlanes(userId, validateForUser) {
 /**
  * Fetch user promotions
  * @param userId {number} - User id
- * @param validateForUser {number} - User id for validate
+ * @param validateForUser {number | null} - User id for validate
  * @param expectFinished {boolean} [expectFinished=true] - If passed true get only not finished promotions, otherwise get all promotions
  * @param link {boolean} [link=false] - If passed true get only free trial links, otherwise get all without trial links
+ * @param additionalFilter {Object | null} [additionalFilter=null] - If passed then add to fetch promotions filter
  * @returns {Promise<Model[]>}
  */
 async function fetchUserPromotions(
   userId,
   validateForUser,
   expectFinished = true,
-  link = false
+  link = false,
+  additionalFilter = null
 ) {
-  const filter = {
+  let filter = {
     userId,
     link,
   };
@@ -371,10 +373,17 @@ async function fetchUserPromotions(
     };
   }
 
-  return validatePromotions(
-    await Promotions.findAll({ where: filter, raw: true }),
-    validateForUser
-  );
+  if (additionalFilter) {
+    filter = { ...filter, ...additionalFilter };
+  }
+
+  const promotions = await Promotions.findAll({ where: filter, raw: true });
+
+  if (!promotions?.length) return [];
+
+  if (validateForUser) {
+    return validatePromotions(promotions, validateForUser);
+  } else return promotions;
 }
 
 /**
