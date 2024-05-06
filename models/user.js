@@ -32,11 +32,11 @@ module.exports = (sequelize, DataTypes) => {
       });
 
       this.hasMany(models.SubscriptionBundles, {
-        as: 'userSubscriptionBundles',
+        as: 'subscriptionBundles',
         foreignKey: 'userId',
       });
       this.hasMany(models.Promotions, {
-        as: 'userPromotions',
+        as: 'promotions',
         foreignKey: 'userId',
       });
     }
