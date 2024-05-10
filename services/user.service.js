@@ -597,7 +597,9 @@ async function fetchUsersData(
                 activeSubscription['subscriptionDetails.autoRenewal'] || null;
               user.cancelRenewal =
                 activeSubscription['subscriptionDetails.autoRenewal'] &&
-                activeSubscription['subscriptionDetails.type'] !== 'trial';
+                !['free', 'trial'].includes(
+                  activeSubscription['subscriptionDetails.type']
+                );
             } else {
               user.subscribed = false;
             }
