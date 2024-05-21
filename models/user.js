@@ -1,5 +1,6 @@
 'use strict';
 const { Model } = require('sequelize');
+
 const { getProfilePhotoLink } = require('../helpers/helpers');
 
 module.exports = (sequelize, DataTypes) => {

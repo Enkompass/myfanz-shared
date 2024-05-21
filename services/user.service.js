@@ -1,4 +1,7 @@
 const axios = require('axios');
+const { Sequelize } = require('sequelize');
+const { eachOfLimit } = require('async');
+
 const {
   sequelize,
   User,
@@ -14,7 +17,6 @@ const {
   CreatorsCouples,
   Promotions,
 } = require('../models/index');
-const { Sequelize } = require('sequelize');
 const {
   fetchUsersConnectionsDetails,
   fetchActiveSubscriptions,
@@ -23,7 +25,7 @@ const {
 const { ConflictError } = require('../errors');
 const { checkUsersHasActiveStory } = require('./creator.service');
 const { checkIsCreator, getRoleFromId } = require('../helpers/helpers');
-const { eachOfLimit } = require('async');
+
 const { Op } = Sequelize;
 
 /**

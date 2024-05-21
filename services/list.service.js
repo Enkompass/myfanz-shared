@@ -1,3 +1,6 @@
+const { Sequelize } = require('sequelize');
+const { union } = require('lodash');
+
 const AllModels = require('../models/index');
 const {
   User,
@@ -8,14 +11,12 @@ const {
   CreatorSettings,
   Promotions,
 } = require('../models/index');
-const { Sequelize } = require('sequelize');
 const { NotFoundError, ConflictError } = require('../errors');
 // const { getObjectSignedUrl } = require('myfanz-media/s3/awsClientS3');
 const {
   fetchUserSubscriptionBundles,
   initSubscriptionBundle,
 } = require('./creatorBundles.service');
-const { union } = require('lodash');
 const { fetchReportedUser } = require('./report.service');
 const { Op } = Sequelize;
 
@@ -389,12 +390,12 @@ async function fetchUserPromotions(
 /**
  * Validate passed promotions for user
  * @param promotions {Array<Object>} - Promotions list
- * @param validateForUser {number} - User id for validate
+ * @param validateForUser {number | undefined} - User id for validate
  * @param error {boolean} [error = false] - If true and cannot claim to throw an error
  * @returns {Promise<{length}|*>}
  */
 async function validatePromotions(promotions, validateForUser, error = false) {
-  if (promotions?.length && validateForUser) {
+  if (promotions?.length) {
     for (let index = 0; index < promotions.length; index++) {
       promotions[index] = await validateOnePromotion(
         promotions[index],
@@ -410,7 +411,7 @@ async function validatePromotions(promotions, validateForUser, error = false) {
 /**
  * Validate passed promotion for user
  * @param promotion {Object} - Promotions list
- * @param validateForUser {number} - User id for validate
+ * @param validateForUser {number | undefined} - User id for validate
  * @param error {boolean} [error = false] - If true and cannot claim to throw an error
  * @returns {Promise<{length}|*>}
  */
@@ -436,63 +437,65 @@ async function validateOnePromotion(promotion, validateForUser, error = false) {
     }
   }
 
-  if (!validateForUser || validateForUser === promotion.userId) {
-    if (error) throw new ConflictError('Own promotion');
-    else {
-      promotion.canClaim = false;
-      return promotion;
+  if (validateForUser) {
+    if (validateForUser === promotion.userId) {
+      if (error) throw new ConflictError('Own promotion');
+      else {
+        promotion.canClaim = false;
+        return promotion;
+      }
     }
-  }
 
-  if (
-    promotion.type === 'trial' &&
-    (await checkIsUsedTrialPromotion(
-      promotion.userId,
+    if (
+      promotion.type === 'trial' &&
+      (await checkIsUsedTrialPromotion(
+        promotion.userId,
+        validateForUser,
+        promotion.id
+      ))
+    ) {
+      if (error)
+        throw new ConflictError(
+          "This free trial offer doesn't exist anymore because it was claimed"
+        );
+      else {
+        promotion.canClaim = false;
+        return promotion;
+      }
+    }
+
+    const subscribed = await checkActiveSubscription(
       validateForUser,
-      promotion.id
-    ))
-  ) {
-    if (error)
-      throw new ConflictError(
-        "This free trial offer doesn't exist anymore because it was claimed"
-      );
-    else {
-      promotion.canClaim = false;
-      return promotion;
+      promotion.userId
+    );
+
+    if (subscribed) {
+      if (error) throw new ConflictError('Already subscribed to this user');
+      else {
+        promotion.canClaim = false;
+        return promotion;
+      }
     }
-  }
 
-  const subscribed = await checkActiveSubscription(
-    validateForUser,
-    promotion.userId
-  );
+    if (promotion.group === 'all') return promotion;
 
-  if (subscribed) {
-    if (error) throw new ConflictError('Already subscribed to this user');
-    else {
-      promotion.canClaim = false;
-      return promotion;
-    }
-  }
+    const isExpiredFollower = await checkIsExpiredFollower(
+      promotion.userId,
+      validateForUser
+    );
 
-  if (promotion.group === 'all') return promotion;
-
-  const isExpiredFollower = await checkIsExpiredFollower(
-    promotion.userId,
-    validateForUser
-  );
-
-  if (promotion.group === 'expired' && !isExpiredFollower) {
-    if (error) throw new ConflictError('Only for expired users');
-    else {
-      promotion.canClaim = false;
-      return promotion;
-    }
-  } else if (promotion.group === 'new' && isExpiredFollower) {
-    if (error) throw new ConflictError('Only for new subscribers');
-    else {
-      promotion.canClaim = false;
-      return promotion;
+    if (promotion.group === 'expired' && !isExpiredFollower) {
+      if (error) throw new ConflictError('Only for expired users');
+      else {
+        promotion.canClaim = false;
+        return promotion;
+      }
+    } else if (promotion.group === 'new' && isExpiredFollower) {
+      if (error) throw new ConflictError('Only for new subscribers');
+      else {
+        promotion.canClaim = false;
+        return promotion;
+      }
     }
   }
 
