@@ -12,7 +12,6 @@ const {
   Promotions,
 } = require('../models/index');
 const { NotFoundError, ConflictError } = require('../errors');
-// const { getObjectSignedUrl } = require('myfanz-media/s3/awsClientS3');
 const {
   fetchUserSubscriptionBundles,
   initSubscriptionBundle,
