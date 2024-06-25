@@ -83,10 +83,10 @@ class ValidationError extends JoiValidationError {
   }
 }
 
-class ResetContentError extends Error {
+class NotAcceptableError extends Error {
   constructor(args) {
     super(args);
-    this.name = 'ResetContentError';
+    this.name = 'NotAcceptableError';
     this.message = args.message;
     this.data = args.data;
   }
@@ -102,5 +102,5 @@ module.exports = {
   PermissionError,
   TwoFactorError,
   TrustFlowError,
-  ResetContentError,
+  NotAcceptableError,
 };
