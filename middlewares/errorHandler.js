@@ -16,6 +16,11 @@ exports.errorHandler = function (err, req, res, next) {
   console.log('errorHandler err ', err);
 
   switch (err.name) {
+    case 'ResetContentError':
+      responseValue.code = 205;
+      responseValue.message = err.message;
+      responseValue.data = err.data;
+      break;
     case 'ValidationError':
       responseValue.code = 400;
       err.details &&

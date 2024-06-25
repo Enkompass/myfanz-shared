@@ -83,6 +83,15 @@ class ValidationError extends JoiValidationError {
   }
 }
 
+class ResetContentError extends Error {
+  constructor(args) {
+    super(args);
+    this.name = 'ResetContentError';
+    this.message = args.message;
+    this.data = args.data;
+  }
+}
+
 module.exports = {
   ConflictError,
   WrongUrlError,
@@ -93,4 +102,5 @@ module.exports = {
   PermissionError,
   TwoFactorError,
   TrustFlowError,
+  ResetContentError,
 };
