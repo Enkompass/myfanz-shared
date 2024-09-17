@@ -1,3 +1,6 @@
+const { Sequelize } = require('sequelize');
+const { union } = require('lodash');
+
 const AllModels = require('../models/index');
 const {
   User,
@@ -6,15 +9,13 @@ const {
   Connections,
   SubscriptionsDetails,
   CreatorSettings,
+  Promotions,
 } = require('../models/index');
-const { Sequelize } = require('sequelize');
 const { NotFoundError, ConflictError } = require('../errors');
-// const { getObjectSignedUrl } = require('myfanz-media/s3/awsClientS3');
 const {
   fetchUserSubscriptionBundles,
   initSubscriptionBundle,
 } = require('./creatorBundles.service');
-const { union } = require('lodash');
 const { fetchReportedUser } = require('./report.service');
 const { Op } = Sequelize;
 
@@ -134,8 +135,6 @@ async function fetchUsersInConnection(userId, slug, active = true) {
   list = list.dataValues;
   let connections = list.connections;
 
-  console.log('connections ', connections);
-
   list.users = [];
 
   for (let j = 0; j < connections.length; j++) {
@@ -179,6 +178,76 @@ async function fetchActiveSubscription(userId, toUserId) {
     ],
     raw: true,
   });
+}
+
+/**
+ * Check is user expired follower
+ * @param userId {number} - Main user id
+ * @param validateForUser {number} - User id need to check
+ * @returns {Promise<boolean>}
+ */
+async function checkIsExpiredFollower(userId, validateForUser) {
+  // const listFollowing = await fetchUserListByType(userId, 'following', true);
+  const listFollowers = await fetchUserListByType(userId, 'followers', true);
+
+  return Boolean(
+    await User.scope('withId').findOne({
+      attributes: ['id'],
+      where: {
+        id: {
+          [Op.and]: [
+            { [Op.eq]: validateForUser },
+            // { [Op.notIn]: notAllowedUsers },
+            {
+              [Op.notIn]: Sequelize.literal(
+                `(SELECT "userId" FROM "Connections" WHERE "listId" = ${listFollowers.id} AND "expiredAt" IS NULL)`
+              ),
+            },
+            {
+              [Op.in]: Sequelize.literal(
+                `(SELECT "userId" FROM "Connections" WHERE "listId" = ${listFollowers.id} AND "expiredAt" IS NOT NULL)`
+              ),
+            },
+          ],
+        },
+      },
+      raw: true,
+    })
+  );
+}
+
+/**
+ * Check if passed trial promotion already used for user
+ * @param userId {number} - Main user id
+ * @param validateForUser {number} - User id need to check
+ * @param promotionId {number} - Trial promotion id
+ * @returns {Promise<boolean>}
+ */
+async function checkIsUsedTrialPromotion(userId, validateForUser, promotionId) {
+  return Boolean(
+    await User.scope('withId').findOne({
+      attributes: ['id'],
+      where: {
+        id: {
+          [Op.and]: [
+            { [Op.eq]: userId },
+            {
+              [Op.in]: Sequelize.literal(
+                `(SELECT c."userId" 
+                FROM "Lists" l
+                INNER JOIN "Connections" c ON c."listId" = l.id
+                INNER JOIN "SubscriptionsDetails" s on s."connectionId" = c.id 
+                WHERE l."userId" = ${validateForUser} AND l."type" = 'following' AND s.type = 'trial' AND s."planId" = ${promotionId}
+                )
+                `
+              ),
+            },
+          ],
+        },
+      },
+      raw: true,
+    })
+  );
 }
 
 /**
@@ -241,8 +310,6 @@ async function getUsersSubscriptionsDetails(userId, refUserId) {
   const activeSubscription =
     (await fetchActiveSubscription(userId, refUserId)) || {};
 
-  console.log('activeSubscription ', activeSubscription);
-
   return {
     subscribed: !!activeSubscription.id,
     currentSubscriptionPrice:
@@ -256,19 +323,16 @@ async function getUsersSubscriptionsDetails(userId, refUserId) {
 /**
  * Get user subscription planes
  * @param userId {number} - user id
+ * @param validateForUser {number | undefined} - Validate user id
  * @returns {Promise<any>}
  */
-async function getUserSubscriptionPlanes(userId) {
+async function getUserSubscriptionPlanes(userId, validateForUser) {
   const settings = await CreatorSettings.findOne({
     where: { userId: Number(userId) },
     raw: true,
   });
 
   const subscriptionBundles = await fetchUserSubscriptionBundles(userId);
-
-  console.log('subscriptionBundles ', subscriptionBundles);
-  console.log('settings ', settings);
-  // console.log('subscriptions ', subscriptions);
 
   if (!settings) return {};
 
@@ -278,7 +342,163 @@ async function getUserSubscriptionPlanes(userId) {
     subscriptionBundles: subscriptionBundles?.map((bundle) =>
       initSubscriptionBundle(bundle, settings.subscriptionPrice)
     ),
+    promotions: await fetchUserPromotions(userId, validateForUser),
   };
+}
+
+/**
+ * Fetch user promotions
+ * @param userId {number} - User id
+ * @param validateForUser {number | null} - User id for validate
+ * @param expectFinished {boolean} [expectFinished=true] - If passed true get only not finished promotions, otherwise get all promotions
+ * @param link {boolean} [link=false] - If passed true get only free trial links, otherwise get all without trial links
+ * @param additionalFilter {Object | null} [additionalFilter=null] - If passed then add to fetch promotions filter
+ * @returns {Promise<Model[]>}
+ */
+async function fetchUserPromotions(
+  userId,
+  validateForUser,
+  expectFinished = true,
+  link = false,
+  additionalFilter = null
+) {
+  let filter = {
+    userId,
+    link,
+  };
+
+  if (expectFinished) {
+    filter.finishAt = {
+      [Op.or]: [{ [Op.is]: null }, { [Op.gt]: new Date() }],
+    };
+  }
+
+  if (additionalFilter) {
+    filter = { ...filter, ...additionalFilter };
+  }
+
+  const promotions = await Promotions.findAll({ where: filter, raw: true });
+
+  if (!promotions?.length) return [];
+
+  if (validateForUser) {
+    return validatePromotions(promotions, validateForUser);
+  } else return promotions;
+}
+
+/**
+ * Validate passed promotions for user
+ * @param promotions {Array<Object>} - Promotions list
+ * @param validateForUser {number | undefined} - User id for validate
+ * @param error {boolean} [error = false] - If true and cannot claim to throw an error
+ * @returns {Promise<{length}|*>}
+ */
+async function validatePromotions(promotions, validateForUser, error = false) {
+  if (promotions?.length) {
+    for (let index = 0; index < promotions.length; index++) {
+      promotions[index] = await validateOnePromotion(
+        promotions[index],
+        validateForUser,
+        error
+      );
+    }
+  }
+
+  return promotions;
+}
+
+/**
+ * Validate passed promotion for user
+ * @param promotion {Object} - Promotions list
+ * @param validateForUser {number | undefined} - User id for validate
+ * @param error {boolean} [error = false] - If true and cannot claim to throw an error
+ * @returns {Promise<{length}|*>}
+ */
+async function validateOnePromotion(promotion, validateForUser, error = false) {
+  promotion.canClaim = true;
+
+  if (promotion.finishAt && new Date(promotion.finishAt) < new Date()) {
+    if (error) throw new ConflictError('Promotion is not active');
+    else {
+      promotion.canClaim = false;
+      return promotion;
+    }
+  }
+
+  if (
+    promotion.subscribeCount &&
+    promotion.claimsCount >= promotion.subscribeCount
+  ) {
+    if (error) throw new ConflictError('Promotion subscribers limit reached');
+    else {
+      promotion.canClaim = false;
+      return promotion;
+    }
+  }
+
+  if (validateForUser) {
+    if (validateForUser === promotion.userId) {
+      if (error) throw new ConflictError('Own promotion');
+      else {
+        promotion.canClaim = false;
+        return promotion;
+      }
+    }
+
+    if (
+      promotion.type === 'trial' &&
+      (await checkIsUsedTrialPromotion(
+        promotion.userId,
+        validateForUser,
+        promotion.id
+      ))
+    ) {
+      if (error)
+        throw new ConflictError(
+          "This free trial offer doesn't exist anymore because it was claimed"
+        );
+      else {
+        promotion.canClaim = false;
+        return promotion;
+      }
+    }
+
+    const subscribed = await checkActiveSubscription(
+      validateForUser,
+      promotion.userId
+    );
+
+    if (subscribed) {
+      if (error) throw new ConflictError('Already subscribed to this user');
+      else {
+        promotion.canClaim = false;
+        return promotion;
+      }
+    }
+
+    if (promotion.group === 'all') return promotion;
+
+    const isExpiredFollower = await checkIsExpiredFollower(
+      promotion.userId,
+      validateForUser
+    );
+
+    if (promotion.group === 'expired' && !isExpiredFollower) {
+      if (error) throw new ConflictError('Only for expired users');
+      else {
+        promotion.canClaim = false;
+        return promotion;
+      }
+    } else if (promotion.group === 'new' && isExpiredFollower) {
+      if (error) throw new ConflictError('Only for new subscribers');
+      else {
+        promotion.canClaim = false;
+        return promotion;
+      }
+    }
+  }
+
+  return promotion;
 }
 
 /**
@@ -402,8 +622,6 @@ async function fetchNotAllowedUsers(
     return union(blockedUsers, blockedFromUsers) || [];
   }
 
-  console.log('blockedUsers ', blockedUsers);
-
   return blockedUsers || [];
 }
 
@@ -479,4 +697,9 @@ module.exports = {
   fetchDataFromModelByFilter,
   fetchListsAllUsers,
   checkUsersConnectionByLists,
+  checkIsExpiredFollower,
+  validatePromotions,
+  validateOnePromotion,
+  checkIsUsedTrialPromotion,
+  fetchUserPromotions,
 };

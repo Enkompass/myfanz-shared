@@ -31,6 +31,31 @@
         ],
         "object-shorthand": [
             "error"
+        ],
+        "sort-imports": [
+            "error",
+            {
+                "ignoreCase": true,
+                "ignoreDeclarationSort": true
+            }
+        ],
+        "import/order": [
+            "error",
+            {
+                "groups": [
+                    [
+                        "external",
+                        "builtin"
+                    ],
+                    "internal",
+                    [
+                        "sibling",
+                        "parent"
+                    ],
+                    "index"
+                ],
+                "newlines-between": "always"
+            }
         ]
     }
 }

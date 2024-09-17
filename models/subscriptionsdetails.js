@@ -22,7 +22,12 @@ module.exports = (sequelize, DataTypes) => {
       connectionId: DataTypes.INTEGER,
       price: DataTypes.NUMERIC(10, 2),
       expireAt: DataTypes.DATE,
+      unsubscribeReason: DataTypes.INTEGER,
       expiredAt: DataTypes.DATE,
+      autoRenewal: DataTypes.BOOLEAN,
+      checkRenewal: DataTypes.BOOLEAN,
+      type: DataTypes.STRING,
+      planId: DataTypes.INTEGER,
     },
     {
       sequelize,

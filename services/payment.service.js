@@ -21,7 +21,7 @@ module.exports.makePayment = async function (
   cardId
 ) {
   try {
-    const response = await makeAuthorizedRequest(cookie, {
+    return await makeAuthorizedRequest(cookie, {
       url: '/payment-srv/payment',
       method: 'POST',
       data: {
@@ -33,10 +33,6 @@ module.exports.makePayment = async function (
         cardId,
       },
     });
-
-    console.log('response ', response);
-
-    return response;
   } catch (e) {
     console.log('makePayment err => ', e.response.data);
     const errData = {
@@ -68,8 +64,6 @@ module.exports.fetchUserBalance = async function (cookie, userId) {
       },
       true
     );
-
-    console.log('response ', response?.data);
 
     return response?.data;
   } catch (e) {

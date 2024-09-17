@@ -6,7 +6,6 @@ async function checkUserHasActiveStory(userId, cookie) {
     method: 'get',
   });
 
-  console.log('checkUserHasActiveStory res ', res);
   return Boolean(res?.data);
 }
 
@@ -17,7 +16,15 @@ async function checkUsersHasActiveStory(users, cookie) {
     data: { users },
   });
 
-  console.log('checkUserHasActiveStory res ', res);
+  return res?.data;
+}
+
+async function fetchStoryById(storyId, cookie) {
+  const res = await makeAuthorizedRequest(cookie, {
+    url: `/creator-srv/story/${storyId}/by-id`,
+    method: 'GET',
+  });
+
   return res?.data;
 }
 
@@ -37,4 +44,5 @@ module.exports = {
   checkUserHasActiveStory,
   fetchUserPosts,
   checkUsersHasActiveStory,
+  fetchStoryById,
 };

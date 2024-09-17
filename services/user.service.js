@@ -1,4 +1,7 @@
 const axios = require('axios');
+const { Sequelize } = require('sequelize');
+const { eachOfLimit } = require('async');
+
 const {
   sequelize,
   User,
@@ -11,14 +14,18 @@ const {
   Lists,
   StripeDetails,
   CardAccounts,
+  CreatorsCouples,
+  Promotions,
 } = require('../models/index');
-const { Sequelize } = require('sequelize');
 const {
   fetchUsersConnectionsDetails,
   fetchActiveSubscriptions,
+  validatePromotions,
 } = require('./list.service');
 const { ConflictError } = require('../errors');
 const { checkUsersHasActiveStory } = require('./creator.service');
+const { checkIsCreator, getRoleFromId } = require('../helpers/helpers');
+
 const { Op } = Sequelize;
 
 /**
@@ -216,7 +223,6 @@ async function makeReport(
         itemUrl,
       },
     });
-    console.log('response ', response.data);
 
     return response.data;
   } catch (e) {
@@ -326,8 +332,8 @@ async function addUsersCardAccounts(data) {
  * @param validateForUser {number|null} [validateForUser=null] - Validate for user id
  * @param attributes {Array<'id'|'displayName'|'email'|'username'|'emailVerifiedAt'|'roleId'|'hasCard'|'lastActivity'|'deletedAt'|'active'|'avatar'|'cover'|any>} [attributes=undefined] - list of fields need to get, if not passed get all fields
  * @param photoOptions {{ignoreHooks?: boolean,getAvatar?:boolean,getCover?:boolean,getSmallCover?:boolean}}
- * @param getOptions {{roleName?: boolean,activeSubscription?: boolean,subscriptionPlanes?: boolean,hasStory?:true,listsIncludedUser?:boolean,keepFormatForOneUser?:boolean}}
- * @param validationOptions {{subscribed?: boolean,blocked?: boolean, blockedReversal?: boolean, restricted?: boolean,restrictedReversal?: boolean,reported?:boolean}}
+ * @param getOptions {{roleName?: boolean,activeSubscription?: boolean,subscriptionPlanes?: boolean,hasStory?:true,listsIncludedUser?:boolean,keepFormatForOneUser?:boolean, getSecondAccount?: boolean,getDataInArray?:boolean,getFriendsList?:boolean}}
+ * @param validationOptions {{subscribed?: boolean,blocked?: boolean, blockedReversal?: boolean, restricted?: boolean,restrictedReversal?: boolean,reported?:boolean,isFriend?:boolean}}
  * @param cookie {string|undefined} - [cookie=undefined] - Session cookie, required for external requests, for example for get hasStory
  * @returns {Promise<any>}
  */
@@ -340,7 +346,7 @@ async function fetchUsersData(
   validationOptions = {},
   cookie = undefined
 ) {
-  const result = {};
+  const result = getOptions.getDataInArray ? [] : {};
   if (!photoOptions) photoOptions = {};
   let oneUserId;
   if (!Array.isArray(users)) {
@@ -414,7 +420,15 @@ async function fetchUsersData(
       {
         attributes: ['id', 'price', 'discount', 'duration'],
         model: SubscriptionBundles,
-        as: 'userSubscriptionBundles',
+        as: 'subscriptionBundles',
+        raw: true,
+      },
+      {
+        // attributes: ['id', 'price', 'discount', 'duration'],
+        model: Promotions,
+        as: 'promotions',
+        where: { link: false },
+        required: false,
         raw: true,
       }
     );
@@ -503,12 +517,23 @@ async function fetchUsersData(
       ]);
     }
 
+    if (validationOptions.isFriend) {
+      attributes.push([
+        sequelize.literal(`(
+                    SELECT fl.id
+                    FROM "FriendLists" AS fl                    
+                    WHERE fl.status = 'accepted' AND ((fl."userOneId" = "User".id AND fl."userTwoId" = ${validateForUser}) 
+                    OR (fl."userOneId" =  ${validateForUser} AND fl."userTwoId" = "User".id))
+                ) IS NOT NULL`),
+        'isFriend',
+      ]);
+    }
+
     if (getOptions.activeSubscription) {
       activeSubscriptions = await fetchActiveSubscriptions(
         validateForUser,
         users
       );
-      console.log('activeSubscriptions ', activeSubscriptions);
     }
 
     if (getOptions.listsIncludedUser) {
@@ -550,46 +575,97 @@ async function fetchUsersData(
   });
 
   if (usersData.length) {
-    usersData.forEach(({ dataValues: user }) => {
-      if (getOptions.activeSubscription) {
-        user.subscribed = false;
+    return new Promise((resolve, reject) => {
+      eachOfLimit(
+        usersData,
+        10,
+        async ({ dataValues: user }, i) => {
+          if (getOptions.activeSubscription) {
+            user.subscribed = false;
 
-        const activeSubscription = activeSubscriptions.find(
-          (el) => el.userId === user.id
-        );
+            const activeSubscription = activeSubscriptions.find(
+              (el) => el.userId === user.id
+            );
 
-        if (activeSubscription) {
-          user.subscribed = true;
-          user.currentSubscriptionPrice =
-            activeSubscription['subscriptionDetails.price'];
-          user.subscribedAt = new Date(activeSubscription['createdAt']);
-          user.subscriptionExpireAt = activeSubscription['expireAt'];
+            if (activeSubscription) {
+              user.subscribed = true;
+              user.currentSubscriptionPrice =
+                activeSubscription['subscriptionDetails.price'];
+              user.subscribedAt = new Date(activeSubscription['createdAt']);
+              user.subscriptionExpireAt = activeSubscription['expireAt'];
+              user.checkRenewal =
+                activeSubscription['subscriptionDetails.checkRenewal'] || null;
+              user.autoRenewal =
+                activeSubscription['subscriptionDetails.autoRenewal'] || null;
+              user.cancelRenewal =
+                activeSubscription['subscriptionDetails.autoRenewal'] &&
+                !['free', 'trial'].includes(
+                  activeSubscription['subscriptionDetails.type']
+                );
+            } else {
+              user.subscribed = false;
+            }
+          }
+
+          if (user.subscriptionBundles) {
+            user.subscriptionBundles = user.subscriptionBundles
+              .map((el) => el.dataValues)
+              .sort((a, b) => a.duration - b.duration);
+          }
+          if (user.promotions?.length) {
+            user.promotions = await validatePromotions(
+              user.promotions.map((el) => el.dataValues),
+              validateForUser
+            );
+          }
+          delete user.UserSettings;
+          delete user.creatorSettings;
+
+          if (getOptions.hasStory) {
+            user.hasStory = Boolean(activeStories?.[user.id]?.hasStory);
+            user.hasNewStory = Boolean(activeStories?.[user.id]?.hasNewStory);
+          }
+
+          if (getOptions.listsIncludedUser) {
+            user.lists = listsIncludedUser[user.id] || [];
+          }
+
+          /** Add creator second account user id if et exists */
+          if (getOptions.getSecondAccount && checkIsCreator(user.roleId)) {
+            const isPaidCreator = getRoleFromId(user.roleId) === 'paidCreator';
+            const creatorsCouple = await CreatorsCouples.findOne({
+              where: isPaidCreator
+                ? { paidUserId: user.id }
+                : { mainUserId: user.id },
+              raw: true,
+            });
+
+            if (creatorsCouple) {
+              if (isPaidCreator) {
+                user.mainUserId = creatorsCouple.mainUserId;
+                user.secondUserId = creatorsCouple.mainUserId;
+              } else {
+                user.secondUserId = creatorsCouple.mainUserId;
+              }
+            }
+          }
+
+          if (getOptions.getDataInArray) {
+            result[i] = user;
+          } else {
+            result[user.id] = user;
+          }
+        },
+
+        (err) => {
+          if (err) reject(err);
+
+          if (oneUserId && !getOptions.keepFormatForOneUser)
+            resolve(getOptions.getDataInArray ? result[0] : result[oneUserId]);
+          else resolve(result);
         }
-      }
-
-      if (user.userSubscriptionBundles) {
-        user.userSubscriptionBundles = user.userSubscriptionBundles
-          .map((el) => el.dataValues)
-          .sort((a, b) => a.duration - b.duration);
-      }
-      delete user.UserSettings;
-      delete user.creatorSettings;
-
-      if (getOptions.hasStory) {
-        user.hasStory = Boolean(activeStories?.[user.id]?.hasStory);
-        user.hasNewStory = Boolean(activeStories?.[user.id]?.hasNewStory);
-      }
-
-      if (getOptions.listsIncludedUser) {
-        user.lists = listsIncludedUser[user.id] || [];
-      }
-
-      result[user.id] = user;
+      );
     });
-
-    if (oneUserId && !getOptions.keepFormatForOneUser) return result[oneUserId];
-
-    return result;
   }
   return null;
 }

@@ -1,5 +1,6 @@
 'use strict';
 const { Model } = require('sequelize');
+
 const { getProfilePhotoLink } = require('../helpers/helpers');
 
 module.exports = (sequelize, DataTypes) => {
@@ -32,7 +33,11 @@ module.exports = (sequelize, DataTypes) => {
       });
 
       this.hasMany(models.SubscriptionBundles, {
-        as: 'userSubscriptionBundles',
+        as: 'subscriptionBundles',
+        foreignKey: 'userId',
+      });
+      this.hasMany(models.Promotions, {
+        as: 'promotions',
         foreignKey: 'userId',
       });
     }
@@ -96,8 +101,6 @@ module.exports = (sequelize, DataTypes) => {
 
   User.addHook('afterFind', async (result, options) => {
     const { ignoreHook, getAvatar, getCover, getSmallCover } = options;
-    console.log('hook after find ', ignoreHook);
-    console.log('hook after find getAvatar ', getAvatar);
     if (ignoreHook) return result;
     if (Array.isArray(result)) {
       return result.map((el) => {

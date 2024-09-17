@@ -1,6 +1,7 @@
 const validUrl = require('valid-url');
 const axios = require('axios');
 const crypto = require('crypto');
+
 const { ConflictError } = require('../errors');
 
 const userRoles = [
@@ -8,11 +9,12 @@ const userRoles = [
   { id: 2, role: 'member' },
   { id: 3, role: 'creator' },
   { id: 4, role: 'admin' },
+  { id: 5, role: 'paidCreator' },
 ];
 
 /**
  * Get role id by role name
- * @param role {'user' | 'member' | 'creator' | 'admin' } - role name
+ * @param role {'user' | 'member' | 'creator' | 'admin' | 'paidCreator' } - role name
  * @returns {number}
  */
 function getRoleId(role) {
@@ -22,10 +24,21 @@ function getRoleId(role) {
 /**
  * Get role by role id
  * @param roleId {number } - role id
- * @returns {'user' | 'member' | 'creator' | 'admin'}
+ * @returns {'user' | 'member' | 'creator' | 'admin' | 'paidCreator'}
  */
 function getRoleFromId(roleId) {
   return userRoles.find((el) => el.id === roleId)?.role;
+}
+
+/**
+ * Check is passed role id is creator
+ * @param roleId {number } - role id
+ * @returns {boolean}
+ */
+function checkIsCreator(roleId) {
+  return ['creator', 'paidCreator'].includes(
+    userRoles.find((el) => el.id === roleId)?.role
+  );
 }
 
 /**
@@ -257,6 +270,29 @@ function getProfilePhotoLink(photo, size = '') {
   }
 }
 
+/**
+ * Calculate datetime by timezone offset
+ * @param date {Date} - date need to calculate
+ * @param offsetInMinutes {number} - timezone offset in minutes
+ * @returns {Date}
+ */
+function getDateWithOffset(date, offsetInMinutes) {
+  const now = new Date(date);
+
+  return new Date(now.getTime() + offsetInMinutes * 60000); // Adjust for offset in milliseconds;
+}
+
+/**
+ * Return true if passed array has duplications, otherwise false
+ * @param arr - Array need to check
+ * @returns {boolean}
+ */
+function hasDuplicates(arr) {
+  const withoutDuplicates = new Set(arr);
+
+  return arr.length !== withoutDuplicates.size;
+}
+
 module.exports = {
   getRoleId,
   getRoleFromId,
@@ -271,4 +307,7 @@ module.exports = {
   generateHash,
   isValidUrl,
   getProfilePhotoLink,
+  getDateWithOffset,
+  hasDuplicates,
+  checkIsCreator,
 };

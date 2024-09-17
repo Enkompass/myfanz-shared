@@ -70,6 +70,11 @@ class MessageBroker {
   async unsubscribe(queue, handler) {
     _.pull(this.queues[queue], handler);
   }
+
+  async disconnect() {
+    await this.channel.close();
+    await this.connection.close();
+  }
 }
 
 /**

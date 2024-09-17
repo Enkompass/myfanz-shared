@@ -1,4 +1,5 @@
 const Redis = require('ioredis');
+
 const { ConflictError } = require('../errors');
 
 class RedisWrapper {
