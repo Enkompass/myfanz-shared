@@ -1,4 +1,7 @@
-const { makeAuthorizedRequest } = require('../helpers/helpers');
+const {
+  makeAuthorizedRequest,
+  getCSRFTokenFromCookie,
+} = require('../helpers/helpers');
 
 /**
  * Make payment by request to payment service
@@ -21,6 +24,7 @@ module.exports.makePayment = async function (
   cardId
 ) {
   try {
+    const { csrfCleanToken } = getCSRFTokenFromCookie(cookie);
     return await makeAuthorizedRequest(cookie, {
       url: '/payment-srv/payment',
       method: 'POST',
@@ -31,6 +35,9 @@ module.exports.makePayment = async function (
         type,
         message,
         cardId,
+      },
+      headers: {
+        'X-Csrf-Token': csrfCleanToken,
       },
     });
   } catch (e) {
@@ -56,11 +63,15 @@ module.exports.makePayment = async function (
  */
 module.exports.fetchUserBalance = async function (cookie, userId) {
   try {
+    const { csrfCleanToken } = getCSRFTokenFromCookie(cookie);
     const response = await makeAuthorizedRequest(
       cookie,
       {
         url: `/payment-srv/balance/${userId}`,
         method: 'GET',
+        headers: {
+          'X-Csrf-Token': csrfCleanToken,
+        },
       },
       true
     );
