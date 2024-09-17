@@ -293,6 +293,23 @@ function hasDuplicates(arr) {
   return arr.length !== withoutDuplicates.size;
 }
 
+function getCSRFTokenFromCookie(cookieString) {
+  const cookies = cookieString.split('; ');
+  for (const cookie of cookies) {
+    const [name, value] = cookie.split('=');
+    const test = value.split('%')[0];
+    if (name === '_csrf_token') {
+      return {
+        csrfTokenWithKey: `_csrf_token=${value}`,
+        csrfTokenValue: value,
+        csrfCleanToken: test,
+      };
+    }
+  }
+
+  return null;
+}
+
 module.exports = {
   getRoleId,
   getRoleFromId,
@@ -310,4 +327,5 @@ module.exports = {
   getDateWithOffset,
   hasDuplicates,
   checkIsCreator,
+  getCSRFTokenFromCookie,
 };
