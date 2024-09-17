@@ -24,7 +24,11 @@ const {
 } = require('./list.service');
 const { ConflictError } = require('../errors');
 const { checkUsersHasActiveStory } = require('./creator.service');
-const { checkIsCreator, getRoleFromId } = require('../helpers/helpers');
+const {
+  checkIsCreator,
+  getRoleFromId,
+  getCSRFTokenFromCookie,
+} = require('../helpers/helpers');
 
 const { Op } = Sequelize;
 
@@ -207,12 +211,14 @@ async function makeReport(
         message: 'Main app URL not defined',
       };
 
+    const { csrfCleanToken } = getCSRFTokenFromCookie(cookie);
     const response = await axios({
       method: 'post',
       url: `${mainAppUrl}/report`,
       headers: {
         Cookie: cookie, // Pass the active cookie session from the incoming request
         'is-internal': true,
+        'X-Csrf-Token': csrfCleanToken,
       },
       data: {
         reportedUser,
