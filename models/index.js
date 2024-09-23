@@ -13,7 +13,7 @@ const config = {
   port: process.env.DEV_MYFANZ_DATABASE_PORT || 5432,
 };
 
-if (process.env.DEV_MYFANZ_DIALECT_OPTIONS) {
+if (!process.env.DEV_MYFANZ_DIALECT_OPTIONS) {
   config.dialectOptions = {
     ssl: {
       require: process.env.DEV_MYFANZ_DATABASE_SSL === 'false' ? false : true,
