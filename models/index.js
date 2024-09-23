@@ -10,9 +10,10 @@ const config = {
   password: process.env.DEV_MYFANZ_DATABASE_PASSWORD,
   dialect: process.env.DEV_MYFANZ_DATABASE_DIALECT,
   host: process.env.DEV_MYFANZ_DATABASE_HOST || 'localhost',
+  port: process.env.DEV_MYFANZ_DATABASE_PORT || 5432,
   dialectOptions: {
     ssl: {
-      require: true,
+      require: process.env.DEV_MYFANZ_DATABASE_SSL || true,
       rejectUnauthorized: false, // disable SSL verification
     },
   },
