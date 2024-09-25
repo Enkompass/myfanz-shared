@@ -35,6 +35,9 @@ exports.errorHandler = function (err, req, res, next) {
     case 'NotFoundError':
       responseValue.code = 404;
       break;
+    case 'InvalidCsrfError':
+      responseValue.code = 422;
+      break;
     case 'NotAcceptableError':
       responseValue.code = 406;
       responseValue.message = err.message;

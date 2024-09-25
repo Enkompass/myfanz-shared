@@ -21,6 +21,13 @@ class NotFoundError extends Error {
   }
 }
 
+class InvalidCsrfError extends Error {
+  constructor(args) {
+    super(args);
+    this.name = 'InvalidCsrfError';
+  }
+}
+
 class NotAuthorizedError extends Error {
   constructor(args) {
     super(args);
@@ -103,4 +110,5 @@ module.exports = {
   TwoFactorError,
   TrustFlowError,
   NotAcceptableError,
+  InvalidCsrfError,
 };
