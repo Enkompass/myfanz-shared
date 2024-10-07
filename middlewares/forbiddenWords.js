@@ -307,13 +307,129 @@ const forbiddenWordsChecker = new Set([
   'watersports',
 ]);
 
+const forbiddenUserNames = new Set([
+  'register',
+  'forgot-password',
+  'reset-password',
+  'confirm-email',
+  'auth/2fa',
+  'auth/success',
+  'email-tamp',
+  'dashboard',
+  'action/trial',
+  'settings',
+  'settings/profile',
+  'settings/account',
+  'settings/security',
+  'settings/security/password',
+  'settings/security/sessions',
+  'settings/security/2fa',
+  'settings/subscription',
+  'settings/notifications',
+  'settings/display',
+  'settings/fans',
+  'settings/messaging',
+  'settings/story',
+  'settings/code',
+  'settings/notifications/push',
+  'settings/notifications/site',
+  'settings/notifications/email',
+  'settings/notifications/toast',
+  'settings/notifications/sms',
+  'settings/account/username',
+  'settings/account/email',
+  'settings/account/phone',
+  'settings/account/delete',
+  'settings/account/x',
+  'settings/account/google',
+  'notifications',
+  'bookmarks',
+  'bookmarks',
+  'lists',
+  'list',
+  'my',
+  'lists/add',
+  'subscriptions',
+  'payments',
+  'payments/add-card',
+  'payments/list',
+  'chats',
+  'chats/send',
+  'chats/chat',
+  'chats/chat',
+  'my/banking',
+  'banking/payout-system',
+  'w9',
+  'w8',
+  'payment-srv/kyc/onboarded',
+  'posts/create',
+  'posts/update',
+  'posts/live',
+  'post',
+  'statistics',
+  'statistics/statements',
+  'statistics/statements/earnings',
+  'statistics/statements/payout-request',
+  'statistics/statements/chargebacks',
+  'statistics/statements/referrals',
+  'statistics/overview',
+  'statistics/overview/earnings',
+  'statistics/overview/highlights',
+  'statistics/engagement',
+  'statistics/engagement/posts',
+  'statistics/engagement/messages',
+  'statistics/engagement/streaming',
+  'statistics/engagement/stories',
+  'statistics/reach',
+  'statistics/reach/visitors',
+  'statistics/reach/promotions',
+  'statistics/reach/trialLinks',
+  'statistics/reach/trackingLinks',
+  'statistics/fans',
+  'statistics/fans/subscriptions',
+  'terms',
+  'privacy',
+  'faq',
+  'vault',
+  'queue',
+  'post-labels',
+  'release',
+  'release-forms',
+  'contact',
+  'about',
+  'omnichannel',
+  'kyc-id',
+  'defending',
+  'brand',
+  'cookies',
+  'usc2257',
+]);
+
 exports.forbiddenWordsMiddleware = function (propertyName) {
-  return function (req, res, next) {
-    function checkForbiddenWords(input, property) {
+  return async function (req, res, next) {
+    async function checkForbiddenWords(input, property) {
+      const words = input.split(/\s+/);
       if (property === 'text') {
         property = 'postText';
       }
-      const words = input.split(/\s+/);
+
+      if (
+        propertyName.includes(['username', 'displayName']) ||
+        property === 'displayName' ||
+        property === 'username'
+      ) {
+        for (const word of words) {
+          if (forbiddenUserNames.has(word.toLowerCase())) {
+            return {
+              success: false,
+              code: 400,
+              errors: {
+                [property]: `Forbidden word detected`,
+              },
+            };
+          }
+        }
+      }
       for (const word of words) {
         if (forbiddenWordsChecker.has(word.toLowerCase())) {
           return {
@@ -331,14 +447,14 @@ exports.forbiddenWordsMiddleware = function (propertyName) {
     if (Array.isArray(propertyName)) {
       for (const property of propertyName) {
         const input = req.body[property] || '';
-        const errorResponse = checkForbiddenWords(input, property);
+        const errorResponse = await checkForbiddenWords(input, property);
         if (errorResponse) {
           return res.status(400).json(errorResponse);
         }
       }
     } else {
       const input = req.body[propertyName] || '';
-      const errorResponse = checkForbiddenWords(input, propertyName);
+      const errorResponse = await checkForbiddenWords(input, propertyName);
       if (errorResponse) {
         return res.status(400).json(errorResponse);
       }
