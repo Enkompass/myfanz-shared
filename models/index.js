@@ -3,14 +3,22 @@ const fs = require('fs');
 const path = require('path');
 const Sequelize = require('sequelize');
 // const process = require('process');
+const pg = require('pg');
 const basename = path.basename(__filename);
 const config = {
-  database: process.env.DEV_MYFANZ_DATABASE_NAME,
-  username: process.env.DEV_MYFANZ_DATABASE_USERNAME,
-  password: process.env.DEV_MYFANZ_DATABASE_PASSWORD,
-  dialect: process.env.DEV_MYFANZ_DATABASE_DIALECT,
-  host: process.env.DEV_MYFANZ_DATABASE_HOST || 'localhost',
-  port: process.env.DEV_MYFANZ_DATABASE_PORT || 5432,
+    username: process.env.DATABASE_USERNAME,
+    password: process.env.DATABASE_PASSWORD,
+    database: process.env.SHARED_DATABASE_NAME,
+    host: process.env.DATABASE_HOST,
+    port: process.env.DATABASE_PORT,
+    dialect: process.env.DATABASE_DIALECT,
+    dialectModule: pg,
+    dialectOptions: {
+      ssl: {
+        require: true,
+        rejectUnauthorized: false, // disable SSL verification
+      },
+    }
 };
 
 if (!process.env.DEV_MYFANZ_DIALECT_OPTIONS) {
