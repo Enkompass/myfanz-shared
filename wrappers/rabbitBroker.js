@@ -21,10 +21,12 @@ class MessageBroker {
    * Initialize connection to rabbitMQ
    */
   async init() {
+    console.log('Connecting to RabbitMQ...');
     this.connection = await amqp.connect(
       process.env.RABBITMQ_URL || 'amqp://localhost'
     );
     this.channel = await this.connection.createChannel();
+    console.log('RabbitMQ connection ready');
     return this;
   }
 
