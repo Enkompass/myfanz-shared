@@ -8,13 +8,18 @@ class RedisWrapper {
   }
 
   async connect() {
+    console.log('Connecting to Redis...');
     return new Promise((resolve, reject) => {
       const redisClient = new Redis({
         port: process.env.REDIS_PORT,
         host: process.env.REDIS_HOST,
         password: process.env.REDIS_PASSWORD,
         connectTimeout: 10000,
+        tls: {
+          rejectUnauthorized: false,
+        },
       });
+      console.log('Redis client created');
       this._client = redisClient;
       redisClient.on('error', (err) => {
         console.error(`Redis connection Error: ${err}`);
@@ -26,6 +31,7 @@ class RedisWrapper {
         this._client = redisClient;
         resolve();
       });
+      console.log('Redis connection initiated');
     });
   }
 
