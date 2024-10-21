@@ -1,6 +1,6 @@
 {
   "name": "myfanz-shared",
-  "version": "1.0.245",
+  "version": "1.0.246",
   "main": "index.js",
   "author": "Hovo Nazaryan <hovnaz96@gmail.com>",
   "license": "MIT",
@@ -11,7 +11,7 @@
   },
   "scripts": {
     "git": "git add . && git commit -m \"New version changes\" && git push origin main",
-    "pub": "npm publish --access public"
+    "pub": "npm publish --access restricted"
   },
   "engines": {
     "node": ">=18.12.1",
@@ -37,5 +37,6 @@
     "eslint-plugin-prettier": "^4.2.1",
     "prettier": "^2.7.1",
     "process": "^0.11.10"
-  }
+  },
+  "private": true
 }
