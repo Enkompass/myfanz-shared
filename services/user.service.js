@@ -16,6 +16,7 @@ const {
   CardAccounts,
   CreatorsCouples,
   Promotions,
+  subAdminPermissions,
 } = require('../models/index');
 const {
   fetchUsersConnectionsDetails,
@@ -654,6 +655,19 @@ async function fetchUsersData(
                 user.secondUserId = creatorsCouple.mainUserId;
               }
             }
+          }
+
+          if (
+            getOptions.getSubAdminPermissionGroupIds &&
+            getRoleFromId(user.roleId) === 'subAdmin'
+          ) {
+            user.permissionGroupIds =
+              (
+                await subAdminPermissions.findOne({
+                  where: { userId: user.id },
+                  raw: true,
+                })
+              ).permissionGroupIds || [];
           }
 
           if (getOptions.getDataInArray) {
