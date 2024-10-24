@@ -5,12 +5,22 @@ const Sequelize = require('sequelize');
 // const process = require('process');
 const basename = path.basename(__filename);
 const config = {
-  database: process.env.MYFANZ_DATABASE_NAME,
-  username: process.env.MYFANZ_DATABASE_USERNAME,
-  password: process.env.MYFANZ_DATABASE_PASSWORD,
-  dialect: process.env.MYFANZ_DATABASE_DIALECT,
+  database:
+    process.env.MYFANZ_DATABASE_NAME || process.env.DEV_MYFANZ_DATABASE_NAME,
+  username:
+    process.env.MYFANZ_DATABASE_USERNAME ||
+    process.env.DEV_MYFANZ_DATABASE_USERNAME,
+  password:
+    process.env.MYFANZ_DATABASE_PASSWORD ||
+    process.env.DEV_MYFANZ_DATABASE_PASSWORD,
+  dialect:
+    process.env.MYFANZ_DATABASE_DIALECT ||
+    process.env.DEV_MYFANZ_DATABASE_DIALECT,
   host: process.env.MYFANZ_DATABASE_HOST || 'localhost',
-  port: process.env.MYFANZ_DATABASE_PORT || 5432,
+  port:
+    process.env.MYFANZ_DATABASE_PORT ||
+    process.env.DEV_MYFANZ_DATABASE_PORT ||
+    5432,
 };
 
 if (!process.env.MYFANZ_DIALECT_OPTIONS) {

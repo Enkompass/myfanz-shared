@@ -10,6 +10,7 @@ const userRoles = [
   { id: 3, role: 'creator' },
   { id: 4, role: 'admin' },
   { id: 5, role: 'paidCreator' },
+  { id: 6, role: 'subAdmin' },
 ];
 
 /**
