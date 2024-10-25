@@ -16,7 +16,7 @@ const {
   CardAccounts,
   CreatorsCouples,
   Promotions,
-  subAdminPermissions,
+  SubAdminPermissions,
 } = require('../models/index');
 const {
   fetchUsersConnectionsDetails,
@@ -663,7 +663,7 @@ async function fetchUsersData(
           ) {
             user.permissionGroupIds =
               (
-                await subAdminPermissions.findOne({
+                await SubAdminPermissions.findOne({
                   where: { userId: user.id },
                   raw: true,
                 })
