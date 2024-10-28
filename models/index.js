@@ -24,9 +24,13 @@ const config = {
 };
 
 if (!process.env.MYFANZ_DIALECT_OPTIONS) {
+  const sslRequired =
+    process.env.MYFANZ_DATABASE_SSL ||
+    process.env.DEV_MYFANZ_DATABASE_SSL ||
+    true;
   config.dialectOptions = {
     ssl: {
-      require: process.env.MYFANZ_DATABASE_SSL === 'false' ? false : true,
+      require: sslRequired === 'false' ? false : true,
       rejectUnauthorized: false, // disable SSL verification
     },
   };
