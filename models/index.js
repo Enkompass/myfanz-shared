@@ -1,6 +1,7 @@
 'use strict';
 const fs = require('fs');
 const path = require('path');
+const pg = require('pg');
 const Sequelize = require('sequelize');
 // const process = require('process');
 const basename = path.basename(__filename);
@@ -21,6 +22,7 @@ const config = {
     process.env.MYFANZ_DATABASE_PORT ||
     process.env.DEV_MYFANZ_DATABASE_PORT ||
     5432,
+  dialectModule: pg,
 };
 
 if (!process.env.MYFANZ_DIALECT_OPTIONS) {
