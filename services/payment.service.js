@@ -91,3 +91,34 @@ module.exports.fetchUserBalance = async function (cookie, userId) {
     return errData;
   }
 };
+
+module.exports.fetchUserCreatorApprovals = async function (cookie, userId) {
+  try {
+    const { csrfCleanToken } = getCSRFTokenFromCookie(cookie);
+    const response = await makeAuthorizedRequest(
+      cookie,
+      {
+        url: `/payment-srv/creator-approval/admin/forUser/${userId}`,
+        method: 'GET',
+        headers: {
+          'X-Csrf-Token': csrfCleanToken,
+        },
+      },
+      true
+    );
+
+    return response?.data;
+  } catch (e) {
+    console.log('makePayment err => ', e.response.data);
+    const errData = {
+      success: false,
+      ...e.response.data,
+    };
+
+    if (errData.errors) {
+      const key = Object.keys(errData.errors)[0];
+      errData.message = `${key}-${errData.errors[key]}`;
+    }
+    return errData;
+  }
+};
