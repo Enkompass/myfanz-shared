@@ -13,7 +13,6 @@ class RedisWrapper {
       const redisClient = new Redis({
         port: process.env.REDIS_PORT,
         host: process.env.REDIS_HOST,
-        password: process.env.REDIS_PASSWORD,
         connectTimeout: 10000,
         tls: {
           rejectUnauthorized: false,
